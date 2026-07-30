@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Activity Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<style>
+  :root{
+    --graphite:#1C2B33;--graphite2:#142027;--steel:#3E5C67;--steel-light:#E3EAEC;
+    --copper:#D98E3B;--copper-light:#F6E4C8;--robot-blue:#2A5C7A;--robot-blue-light:#DCEAF1;
+    --ink:#23343C;--muted:#5C7079;--card:#F4F2EE;--white:#FFFFFF;
+    --good:#3E7A52;--good-bg:#E7F3EA;--warn:#9A6B1E;--warn-bg:#FBF0DC;--bad:#A23B3B;--bad-bg:#FBEAEA;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--graphite);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;padding:28px 16px 60px;}
+  .app{max-width:1320px;margin:0 auto;}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin:0 0 10px;}
+  h1,h2,h3{font-family:'Fraunces',serif;color:var(--white);margin:0;}
+  .top{text-align:left;margin-bottom:28px;}
+  .top h1{font-size:clamp(28px,4vw,42px);font-weight:700;line-height:1.08;}
+  .top p{color:var(--steel-light);font-size:16px;max-width:720px;line-height:1.5;margin:10px 0 0;}
+
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--white);border-radius:14px;padding:18px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.15);transition:transform .15s ease;}
+  .stat-card:hover{transform:translateY(-2px);}
+  .stat-num{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:var(--copper);line-height:1;}
+  .stat-label{font-size:12px;font-weight:600;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.05em;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .tab{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;padding:10px 18px;border-radius:10px;border:none;cursor:pointer;background:var(--steel);color:var(--steel-light);transition:all .15s ease;}
+  .tab:hover{background:var(--steel-light);color:var(--graphite);}
+  .tab.active{background:var(--copper);color:var(--graphite);}
+
+  .panel{background:var(--white);border-radius:18px;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,.25);margin-bottom:20px;}
+  .panel h2{color:var(--graphite);font-size:22px;margin-bottom:16px;}
+  .panel h3{color:var(--graphite);font-size:17px;margin-bottom:12px;}
+  .panel-sub{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.4;}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+  .chart-box{background:var(--card);border-radius:12px;padding:18px;position:relative;min-height:280px;}
+  .chart-box h3{margin-bottom:14px;}
+  .chart-wrap{position:relative;height:240px;}
+
+  .table-wrap{overflow-x:auto;margin-top:12px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{background:var(--graphite);color:var(--white);padding:10px 12px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;}
+  tbody tr{border-bottom:1px solid #E9E6DF;transition:background .1s;}
+  tbody tr:hover{background:var(--card);}
+  tbody td{padding:9px 12px;color:var(--ink);}
+  .clickable{cursor:pointer;}
+  .badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:700;}
+  .badge-good{background:var(--good-bg);color:var(--good);}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);}
+  .badge-bad{background:var(--bad-bg);color:var(--bad);}
+
+  .search-bar{display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+  .search-bar input,.search-bar select{font-family:'Inter',sans-serif;font-size:14px;padding:10px 14px;border-radius:8px;border:1.5px solid #E3E0D8;background:var(--white);}
+  .search-bar input{flex:1;min-width:200px;}
+
+  .btn{font-family:'Inter',sans-serif;font-weight:700;font-size:14px;border:none;border-radius:10px;padding:11px 20px;cursor:pointer;transition:transform .1s ease,opacity .15s ease;}
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--copper);color:var(--graphite);}
+  .btn-primary:hover{opacity:.92;}
+  .btn-ghost{background:var(--steel-light);color:var(--graphite);}
+  .btn-sm{font-size:12px;padding:7px 14px;border-radius:8px;}
+  .btn-back{background:var(--steel);color:var(--white);font-size:13px;font-weight:700;padding:9px 20px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .btn-back:hover{background:var(--steel-light);color:var(--graphite);}
+  .month-group{margin-bottom:20px;}
+  .month-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 16px;background:var(--steel);border-radius:10px;margin-bottom:12px;user-select:none;transition:background .12s;}
+  .month-header:hover{background:var(--robot-blue);}
+  .month-header span{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--white);}
+  .month-header .toggle{color:var(--copper);font-size:16px;font-weight:900;}
+  .month-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .activity-date-meta{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+  @media(max-width:900px){.month-cards{grid-template-columns:repeat(2,1fr);}}
+
+  .loading{text-align:center;padding:60px 20px;color:var(--steel-light);font-size:16px;}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:15px;}
+  .hidden{display:none !important;}
+
+  /* Q Accuracy Bars */
+  .q-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .q-bar-label{font-size:13px;font-weight:600;color:var(--graphite);width:90px;flex-shrink:0;}
+  .q-bar-track{flex:1;height:30px;background:#E9E6DF;border-radius:8px;overflow:hidden;position:relative;}
+  .q-bar-fill{height:100%;border-radius:8px;transition:width .5s ease;display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:700;color:var(--white);}
+  .q-bar-fill.high{background:var(--good);}
+  .q-bar-fill.mid{background:var(--warn);}
+  .q-bar-fill.low{background:var(--bad);}
+  .q-bar-stat{font-size:12px;color:var(--muted);width:80px;text-align:right;flex-shrink:0;}
+
+  /* Activity detail header */
+  .activity-hero{display:flex;align-items:center;gap:20px;margin-bottom:24px;flex-wrap:wrap;}
+  .activity-hero .icon{width:64px;height:64px;border-radius:16px;background:var(--graphite);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+  .activity-hero h2{color:var(--graphite);font-size:26px;margin-bottom:4px;}
+  .activity-hero .meta{font-size:14px;color:var(--muted);}
+
+  /* Heatmap */
+  .heatmap-wrap{overflow-x:auto;}
+  .heatmap{border-collapse:collapse;font-size:12px;width:100%;}
+  .heatmap th{background:var(--graphite);color:var(--white);padding:8px 6px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.03em;white-space:nowrap;}
+  .heatmap th:first-child{text-align:left;min-width:120px;}
+  .heatmap td{padding:6px;text-align:center;font-weight:700;font-size:12px;border:1px solid var(--card);min-width:50px;}
+  .heatmap td:first-child{text-align:left;font-weight:600;background:var(--card);color:var(--graphite);font-size:12px;}
+  .heat-full{background:var(--good-bg);color:var(--good);}
+  .heat-partial{background:var(--warn-bg);color:var(--warn);}
+  .heat-zero{background:var(--bad-bg);color:var(--bad);}
+  .heat-na{background:#F5F5F5;color:#CCC;}
+
+  /* Insight cards */
+  .insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .insight{background:var(--card);border-radius:12px;padding:16px 18px;border-left:4px solid var(--copper);}
+  .insight .label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
+  .insight .value{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--graphite);}
+  .insight .detail{font-size:13px;color:var(--muted);margin-top:4px;}
+
+  /* Round pills */
+  .round-pills{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .round-pill{font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;cursor:pointer;border:1.5px solid #E3E0D8;background:var(--white);color:var(--ink);transition:all .12s;}
+  .round-pill:hover{border-color:var(--copper);}
+  .round-pill.active{background:var(--copper);color:var(--graphite);border-color:var(--copper);}
+
+  /* Student detail */
+  .student-detail{background:var(--card);border-radius:12px;padding:20px;margin-top:12px;}
+  .student-detail h3{color:var(--graphite);margin-bottom:12px;}
+
+  @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.grid-2,.grid-3,.insight-grid{grid-template-columns:1fr;}}
+  @media(max-width:600px){body{padding:14px 10px 40px;}.panel{padding:18px 14px;border-radius:14px;}.stats{grid-template-columns:1fr 1fr;}.stat-num{font-size:26px;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <p class="eyebrow">Instructor Analytics &middot; Live Dashboard</p>
+    <h1>Class Activity Dashboard</h1>
+    <p>Real-time results from all interactive classroom activities. Click any activity for deep question-level analytics.</p>
+  </div>
+  <div id="content">
+    <div class="panel" id="setupPanel"><div class="loading">Loading data from Google Sheet...</div></div>
+    <div id="dashboard" class="hidden"></div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+
+window.onerror = function(msg, src, line) {
+  var p = document.getElementById("setupPanel");
+  if (p) { p.classList.remove("hidden"); p.innerHTML = '<div style="background:#FBEAEA;border-radius:14px;padding:20px 24px;border:2px solid #A23B3B;"><b style="font-family:Fraunces,serif;">JS Error:</b> ' + msg + ' (line ' + line + ')<br><br><button class="btn btn-primary" onclick="location.reload()">Reload</button></div>'; }
+};
+
+let DATA = { headers: [], rows: [] };
+let chartInstances = {};
+function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+
+// ============================================================
+// AUTO-LOAD
+// ============================================================
+(async function autoLoad() {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(SCRIPT_URL + "?action=getData", { signal: controller.signal });
+    clearTimeout(timer);
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { throw new Error("Bad response from sheet (not JSON). Check deployment settings."); }
+    if (!json.rows || json.rows.length === 0) {
+      document.getElementById("setupPanel").innerHTML = '<div class="empty">Sheet is empty. Run an activity first, then refresh.</div>';
+      return;
+    }
+    DATA = json;
+    try { renderOverview(); } catch(renderErr) {
+      document.getElementById("setupPanel").classList.remove("hidden");
+      document.getElementById("setupPanel").innerHTML = `<div style="background:var(--bad-bg);border-radius:14px;padding:20px 24px;border:2px solid var(--bad);"><h3 style="font-family:Fraunces,serif;color:var(--graphite);font-size:18px;margin-bottom:10px;">Render error</h3><p style="color:var(--ink);font-size:14px;margin-bottom:14px;">${esc(renderErr.message)}</p><button class="btn btn-primary" onclick="location.reload()">Retry</button></div>`;
+    }
+  } catch (err) {
+    const msg = err.name === "AbortError" ? "Request timed out (12s). The script may be slow or unreachable." : err.message;
+    document.getElementById("setupPanel").innerHTML = `<div style="background:var(--warn-bg);border-radius:14px;padding:20px 24px;border:2px solid var(--copper);"><h3 style="font-family:Fraunces,serif;color:var(--graphite);font-size:18px;margin-bottom:10px;">Could not connect</h3><p style="color:var(--ink);font-size:14px;margin-bottom:14px;">${esc(msg)}</p><button class="btn btn-primary" onclick="location.reload()">Retry</button> <button class="btn btn-ghost" onclick="DATA=generateDemoData();renderOverview();" style="margin-left:8px;">Load Demo</button></div>`;
+  }
+})();
+
+// ============================================================
+// HELPERS
+// ============================================================
+function pct(r) { let v = r["Percent"] || r["percent"] || "0"; return parseInt(String(v).replace("%",""),10) || 0; }
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function badgeFor(p) { return p >= 70 ? `<span class="badge badge-good">${p}%</span>` : p >= 50 ? `<span class="badge badge-warn">${p}%</span>` : `<span class="badge badge-bad">${p}%</span>`; }
+function ratingFor(p) { return p >= 90 ? "Excellent" : p >= 70 ? "Good" : p >= 50 ? "Average" : "Needs Work"; }
+
+function getQCols() {
+  const ans = DATA.headers.filter(h => h && /^Q\d+ Answer$/.test(h));
+  const marks = DATA.headers.filter(h => h && /^Q\d+ Marks$/.test(h));
+  if (ans.length) return { type: "new", answerCols: ans, marksCols: marks };
+  const old = DATA.headers.filter(h => h && /^Q\d+ Detail$/.test(h));
+  return { type: "old", detailCols: old };
+}
+
+// ============================================================
+// OVERVIEW PAGE
+// ============================================================
+function renderOverview() {
+  document.getElementById("setupPanel").classList.add("hidden");
+  const dash = document.getElementById("dashboard");
+  dash.classList.remove("hidden");
+
+  const rows = DATA.rows;
+  const students = [...new Set(rows.map(r => r["Student Name"] || r["name"] || ""))].filter(Boolean);
+  const games = [...new Set(rows.map(r => r["Game"] || r["game"] || ""))].filter(Boolean);
+  const percents = rows.map(r => pct(r));
+  const avg = percents.length ? Math.round(percents.reduce((a,b) => a+b, 0) / percents.length) : 0;
+  const topScore = percents.length ? Math.max(...percents) : 0;
+
+  // Get College/Department from first row (shared across all rows)
+  const collegeName = rows[0]?.["College"] || "";
+  const deptName = rows[0]?.["Department"] || "";
+  const institutionBanner = (collegeName || deptName) ? '<div style="background:var(--robot-blue-light);border-radius:10px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:18px;">🏛️</span><span style="font-family:Fraunces,serif;font-weight:700;font-size:15px;color:var(--graphite);">' + esc(collegeName) + '</span>' + (deptName ? '<span style="color:var(--muted);font-weight:600;font-size:13px;">·&nbsp; ' + esc(deptName) + '</span>' : '') + '</div>' : '';
+
+  dash.innerHTML = `
+    ${institutionBanner}
+    <div class="stats">
+      <div class="stat-card"><div class="stat-num">${students.length}</div><div class="stat-label">Students</div></div>
+      <div class="stat-card"><div class="stat-num">${avg}%</div><div class="stat-label">Class Average</div></div>
+      <div class="stat-card"><div class="stat-num">${topScore}%</div><div class="stat-label">Top Score</div></div>
+      <div class="stat-card"><div class="stat-num">${games.length}</div><div class="stat-label">Activities</div></div>
+      <div class="stat-card"><div class="stat-num">${rows.length}</div><div class="stat-label">Submissions</div></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">Activities</h2>
+      <p class="panel-sub">Click any activity for deep question-level analysis.</p>
+      <div class="search-bar" style="margin-bottom:20px;">
+        <input type="text" id="actSearch" placeholder="Search activities..." oninput="renderActivityCards()" />
+        <select id="actMonthFilter" onchange="renderActivityCards()"><option value="">All Months</option></select>
+      </div>
+      <div id="activityCards"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="chart-box"><h3>Overall Score Distribution</h3><div class="chart-wrap"><canvas id="overviewDistChart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="chart-box"><h3>Average by Activity</h3><div class="chart-wrap"><canvas id="overviewActChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">All Student Results</h2>
+      <div class="search-bar">
+        <input type="text" id="searchAll" placeholder="Search by name, PRN, or class..." />
+        <select id="dateFilterAll"><option value="">All Dates</option></select>
+        <select id="classFilterAll"><option value="">All Classes</option></select>
+        <button class="btn btn-ghost btn-sm" id="exportBtn">Export CSV</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr>
+        <th>Date</th><th>Time</th><th>Class</th><th>PRN</th><th>Student</th><th>Activity</th><th>Round</th><th>Score</th><th>%</th><th>Rating</th>
+      </tr></thead><tbody id="allBody"></tbody></table></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">Student Deep Dive</h2>
+      <p class="panel-sub">Click any student row above to see their full performance breakdown.</p>
+      <div id="studentDive" class="empty">Select a student to begin.</div>
+    </div>
+  `;
+
+  // Populate month filter
+  const monthSet = new Set();
+  games.forEach(g => {
+    const gRows = rows.filter(r => (r["Game"]||r["game"]) === g);
+    gRows.forEach(r => {
+      const d = r["Date"] || "";
+      if (d) {
+        const parts = d.split("-");
+        if (parts.length === 3) monthSet.add(parts[2] + "-" + parts[1]); // YYYY-MM
+      }
+    });
+  });
+  const monthSel = document.getElementById("actMonthFilter");
+  [...monthSet].sort().reverse().forEach(m => {
+    const [y, mo] = m.split("-");
+    const label = new Date(y, parseInt(mo)-1, 1).toLocaleString("default",{month:"long",year:"numeric"});
+    monthSel.innerHTML += `<option value="${m}">${label}</option>`;
+  });
+
+  window._allGames = games;
+  window._allRows = rows;
+  renderActivityCards();
+
+  // Overview charts
+  renderOverviewCharts(rows, games);
+
+  // Date filter
+  const dates = [...new Set(rows.map(r => r["Date"] || ""))].filter(Boolean).sort().reverse();
+  const sel = document.getElementById("dateFilterAll");
+  dates.forEach(d => sel.innerHTML += `<option value="${esc(d)}">${esc(d)}</option>`);
+
+  // Class filter
+  const classes = [...new Set(rows.map(r => r["Class"] || ""))].filter(Boolean).sort();
+  const classSel = document.getElementById("classFilterAll");
+  classes.forEach(c => classSel.innerHTML += `<option value="${esc(c)}">${esc(c)}</option>`);
+
+  // Table
+  renderAllTable(rows);
+  document.getElementById("searchAll").addEventListener("input", () => renderAllTable(rows));
+  document.getElementById("dateFilterAll").addEventListener("change", () => renderAllTable(rows));
+  document.getElementById("classFilterAll").addEventListener("change", () => renderAllTable(rows));
+  document.getElementById("exportBtn").addEventListener("click", () => exportCSV(rows));
+}
+
+function renderActivityCards() {
+  const search = (document.getElementById("actSearch").value || "").toLowerCase();
+  const monthFilter = document.getElementById("actMonthFilter").value;
+  const rows = window._allRows || [];
+  const games = window._allGames || [];
+  const wrap = document.getElementById("activityCards");
+  wrap.innerHTML = "";
+
+  // Build per-game metadata
+  const gameData = games.map(g => {
+    const gRows = rows.filter(r => (r["Game"]||r["game"]) === g);
+    const gStudents = [...new Set(gRows.map(r => r["Student Name"]||r["name"]||""))].filter(Boolean).length;
+    const gAvg = gRows.length ? Math.round(gRows.map(r=>pct(r)).reduce((a,b)=>a+b,0)/gRows.length) : 0;
+    const rounds = [...new Set(gRows.map(r => r["Round / Mission"]||r["round"]||r["mission"]||""))].filter(Boolean);
+    // Get latest date and time
+    const dates = gRows.map(r => r["Date"]||"").filter(Boolean);
+    const times = gRows.map(r => r["Time"]||"").filter(Boolean);
+    const latestDate = dates.length ? dates[dates.length-1] : "";
+    const latestTime = times.length ? times[times.length-1] : "";
+    // Month key: YYYY-MM from dd-MM-yyyy
+    let monthKey = "";
+    if (latestDate) {
+      const p = latestDate.split("-");
+      if (p.length === 3) monthKey = p[2]+"-"+p[1];
+    }
+    return { g, gRows, gStudents, gAvg, rounds, latestDate, latestTime, monthKey };
+  }).filter(d => {
+    if (search && !d.g.toLowerCase().includes(search)) return false;
+    if (monthFilter && d.monthKey !== monthFilter) return false;
+    return true;
+  });
+
+  if (!gameData.length) {
+    wrap.innerHTML = '<p class="empty">No activities match your filter.</p>';
+    return;
+  }
+
+  // Group by month
+  const monthOrder = [...new Set(gameData.map(d => d.monthKey))].sort().reverse();
+  monthOrder.forEach(mk => {
+    const group = gameData.filter(d => d.monthKey === mk);
+    let monthLabel = mk;
+    if (mk) {
+      const [y, mo] = mk.split("-");
+      monthLabel = new Date(y, parseInt(mo)-1, 1).toLocaleString("default",{month:"long",year:"numeric"});
+    }
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "month-group";
+    const header = document.createElement("div");
+    header.className = "month-header";
+    header.innerHTML = `<span>📅 ${monthLabel} <span style="color:var(--steel-light);font-size:13px;font-weight:400;">(${group.length} activit${group.length===1?"y":"ies"})</span></span><span class="toggle">▾</span>`;
+    const cardsDiv = document.createElement("div");
+    cardsDiv.className = "month-cards";
+    header.addEventListener("click", () => {
+      const open = cardsDiv.style.display !== "none";
+      cardsDiv.style.display = open ? "none" : "grid";
+      header.querySelector(".toggle").textContent = open ? "▸" : "▾";
+    });
+    group.forEach(({g, gStudents, gAvg, rounds, latestDate, latestTime}) => {
+      const card = document.createElement("div");
+      card.className = "stat-card clickable";
+      card.style.cssText = "text-align:left;cursor:pointer;border:2px solid transparent;transition:all .15s;";
+      const timeHtml = latestTime ? '<span style="margin-left:6px;">🕐 ' + esc(latestTime) + '</span>' : '';
+      card.innerHTML =
+        '<div style="font-family:\'Fraunces\',serif;font-size:17px;font-weight:700;color:var(--graphite);margin-bottom:6px;line-height:1.2;">' + esc(g) + '</div>' +
+        '<div class="activity-date-meta"><span>📆 ' + esc(latestDate) + '</span>' + timeHtml + '</div>' +
+        '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;">' +
+          '<div><span style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:700;color:var(--copper);">' + gAvg + '%</span><div style="font-size:11px;color:var(--muted);font-weight:600;">AVG SCORE</div></div>' +
+          '<div><span style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:700;color:var(--robot-blue);">' + gStudents + '</span><div style="font-size:11px;color:var(--muted);font-weight:600;">STUDENTS</div></div>' +
+          '<div><span style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:700;color:var(--steel);">' + rounds.length + '</span><div style="font-size:11px;color:var(--muted);font-weight:600;">ROUNDS</div></div>' +
+        '</div>' +
+        '<div style="margin-top:10px;font-size:13px;color:var(--copper);font-weight:700;">View Details →</div>';
+      card.addEventListener("mouseenter", () => card.style.borderColor = "var(--copper)");
+      card.addEventListener("mouseleave", () => card.style.borderColor = "transparent");
+      card.addEventListener("click", () => renderActivityDetail(g));
+      cardsDiv.appendChild(card);
+    });
+    groupDiv.appendChild(header);
+    groupDiv.appendChild(cardsDiv);
+    wrap.appendChild(groupDiv);
+  });
+}
+
+function renderOverviewCharts(rows, games) {
+  // Score distribution
+  destroyChart("overviewDist");
+  const buckets = {"90-100%":0,"70-89%":0,"50-69%":0,"30-49%":0,"0-29%":0};
+  rows.forEach(r => { const p = pct(r); if(p>=90) buckets["90-100%"]++; else if(p>=70) buckets["70-89%"]++; else if(p>=50) buckets["50-69%"]++; else if(p>=30) buckets["30-49%"]++; else buckets["0-29%"]++; });
+  chartInstances["overviewDist"] = new Chart(document.getElementById("overviewDistChart"), {
+    type:"bar", data:{ labels:Object.keys(buckets), datasets:[{ data:Object.values(buckets), backgroundColor:["#3E7A52","#5A9A6E","#D98E3B","#C47A2A","#A23B3B"], borderRadius:6, barThickness:36 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1,font:{family:"Inter"}},grid:{color:"#E9E6DF"}}, x:{ticks:{font:{family:"Inter",weight:600}},grid:{display:false}} } }
+  });
+
+  // Average by activity
+  destroyChart("overviewAct");
+  const gLabels = games;
+  const gAvgs = games.map(g => { const gr = rows.filter(r => (r["Game"]||r["game"]) === g); return gr.length ? Math.round(gr.map(r=>pct(r)).reduce((a,b)=>a+b,0)/gr.length) : 0; });
+  chartInstances["overviewAct"] = new Chart(document.getElementById("overviewActChart"), {
+    type:"bar", data:{ labels:gLabels, datasets:[{ data:gAvgs, backgroundColor:gAvgs.map(v => v>=70?"#3E7A52":v>=50?"#D98E3B":"#A23B3B"), borderRadius:6, barThickness:36 }] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:"y", plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true,max:100,ticks:{font:{family:"Inter"},callback:v=>v+"%"},grid:{color:"#E9E6DF"}}, y:{ticks:{font:{family:"Inter",weight:600,size:11}},grid:{display:false}} } }
+  });
+}
+
+function renderAllTable(allRows) {
+  const search = (document.getElementById("searchAll").value || "").toLowerCase();
+  const dateVal = document.getElementById("dateFilterAll").value;
+  const classVal = document.getElementById("classFilterAll").value;
+  let rows = allRows;
+  if (search) rows = rows.filter(r => {
+    const name = (r["Student Name"]||r["name"]||"").toLowerCase();
+    const prn = (r["PRN"]||"").toLowerCase();
+    const cls = (r["Class"]||"").toLowerCase();
+    return name.includes(search) || prn.includes(search) || cls.includes(search);
+  });
+  if (dateVal) rows = rows.filter(r => (r["Date"]||"") === dateVal);
+  if (classVal) rows = rows.filter(r => (r["Class"]||"") === classVal);
+  const tbody = document.getElementById("allBody");
+  tbody.innerHTML = rows.map(r => {
+    const p = pct(r); const name = r["Student Name"]||r["name"]||"";
+    return `<tr class="clickable" data-student="${esc(name)}">
+      <td>${esc(r["Date"]||"")}</td><td>${esc(r["Time"]||"")}</td>
+      <td>${esc(r["Class"]||"")}</td><td>${esc(r["PRN"]||"")}</td>
+      <td><b>${esc(name)}</b></td>
+      <td>${esc(r["Game"]||r["game"]||"")}</td><td>${esc(r["Round / Mission"]||r["round"]||r["mission"]||"")}</td>
+      <td>${r["Total Score"]||r["Score"]||r["score"]||""}/${r["Max Score"]||r["Max"]||r["max"]||""}</td>
+      <td>${badgeFor(p)}</td><td>${ratingFor(p)}</td></tr>`;
+  }).join("");
+  tbody.querySelectorAll("tr").forEach(tr => tr.addEventListener("click", () => renderStudentDive(tr.dataset.student)));
+}
+
+function exportCSV(rows) {
+  let csv = "Date,Time,College,Department,Class,PRN,Student,Activity,Round,Score,Max,Percent\n";
+  rows.forEach(r => { csv += [r["Date"]||"",r["Time"]||"",r["College"]||"",r["Department"]||"",r["Class"]||"",r["PRN"]||"",r["Student Name"]||r["name"]||"",r["Game"]||r["game"]||"",r["Round / Mission"]||r["round"]||r["mission"]||"",r["Total Score"]||r["Score"]||r["score"]||"",r["Max Score"]||r["Max"]||r["max"]||"",r["Percent"]||r["percent"]||""].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")+"\n"; });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download = "results.csv"; a.click();
+}
+
+function exportHeatmapCSV(gameName) {
+  const rows = DATA.rows.filter(r => (r["Game"]||r["game"]) === gameName);
+  const qInfo = getQCols();
+  const cols = qInfo.type === "new" ? qInfo.answerCols : (qInfo.detailCols || []);
+  const markCols = qInfo.type === "new" ? qInfo.marksCols : [];
+  const students = [...new Set(rows.map(r => r["Student Name"]||r["name"]||""))].filter(Boolean).sort();
+  const qLabels = cols.map(c => c.replace(" Answer","").replace(" Detail",""));
+
+  let csv = ["Class","PRN","Student", ...qLabels, "Total"].map(v=>'"'+v+'"').join(",") + "\n";
+  students.forEach(name => {
+    const sRows = rows.filter(r => (r["Student Name"]||r["name"]||"") === name);
+    const cls = sRows[0]?.["Class"] || "";
+    const prn = sRows[0]?.["PRN"] || "";
+    let total = 0;
+    const marks = cols.map((col, i) => {
+      let m = null;
+      sRows.forEach(r => {
+        if (qInfo.type === "new" && markCols[i]) {
+          const v = parseFloat(r[markCols[i]]);
+          if (!isNaN(v)) { m = (m === null ? 0 : m) + v; }
+        } else {
+          const v = String(r[col]||"");
+          if (v.includes("✅")||v.includes("(good)")||v.includes("Correct")) { m = (m === null ? 0 : m) + 10; }
+          else if (v.includes("⚠")||v.includes("(warn)")) { m = (m === null ? 0 : m) + 5; }
+          else if (v) { if (m === null) m = 0; }
+        }
+      });
+      if (m !== null) total += m;
+      return m === null ? "" : m;
+    });
+    csv += ['"'+cls.replace(/"/g,'""')+'"','"'+prn.replace(/"/g,'""')+'"','"'+name.replace(/"/g,'""')+'"', ...marks.map(v=>'"'+v+'"'), '"'+total+'"'].join(",") + "\n";
+  });
+
+  const safe = gameName.replace(/[^a-z0-9]/gi,"_");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download = safe+"_heatmap.csv"; a.click();
+}
+
+// ============================================================
+// ACTIVITY DETAIL PAGE
+// ============================================================
+function renderActivityDetail(gameName) {
+  const dash = document.getElementById("dashboard");
+  const allGameRows = DATA.rows.filter(r => (r["Game"]||r["game"]) === gameName);
+  const rounds = [...new Set(allGameRows.map(r => r["Round / Mission"]||r["round"]||r["mission"]||""))].filter(Boolean);
+  const students = [...new Set(allGameRows.map(r => r["Student Name"]||r["name"]||""))].filter(Boolean);
+  const percents = allGameRows.map(r => pct(r));
+  const avg = percents.length ? Math.round(percents.reduce((a,b)=>a+b,0)/percents.length) : 0;
+  const top = percents.length ? Math.max(...percents) : 0;
+  const low = percents.length ? Math.min(...percents) : 0;
+  const qInfo = getQCols();
+  let activeRound = "all";
+
+  const lastDate = allGameRows.map(r=>r["Date"]||"").filter(Boolean).slice(-1)[0] || "";
+  const lastTime = allGameRows.map(r=>r["Time"]||"").filter(Boolean).slice(-1)[0] || "";
+  const conductedMeta = lastDate ? ('<span>📆 Last conducted: <b>'+esc(lastDate)+'</b>'+(lastTime?' &nbsp;🕐 <b>'+esc(lastTime)+'</b>':'')+'</span>') : '';
+
+  dash.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-back" id="backBtn">← Back to Overview</button>
+    </div>
+
+    <div class="panel">
+      <div class="activity-hero">
+        <div class="icon">📊</div>
+        <div>
+          <h2 style="color:var(--graphite)">${esc(gameName)}</h2>
+          <div class="meta">${students.length} students &middot; ${rounds.length} rounds &middot; ${allGameRows.length} submissions</div>
+          <div class="activity-date-meta" style="margin-top:6px;">${conductedMeta}</div>
+        </div>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card"><div class="stat-num">${avg}%</div><div class="stat-label">Class Average</div></div>
+        <div class="stat-card"><div class="stat-num">${top}%</div><div class="stat-label">Highest Score</div></div>
+        <div class="stat-card"><div class="stat-num">${low}%</div><div class="stat-label">Lowest Score</div></div>
+        <div class="stat-card"><div class="stat-num">${students.length}</div><div class="stat-label">Students</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">Filter by Round / Mission</h2>
+      <div class="round-pills" id="roundPills"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel"><div class="chart-box"><h3>Score Distribution</h3><div class="chart-wrap"><canvas id="actDistChart"></canvas></div></div></div>
+      <div class="panel"><div class="chart-box"><h3>Average by Round</h3><div class="chart-wrap"><canvas id="actRoundChart"></canvas></div></div></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">Question-by-Question Accuracy</h2>
+      <p class="panel-sub">How often students answered each question correctly. Red = hardest, Green = easiest.</p>
+      <div id="qBars"></div>
+      <div class="insight-grid" id="insights"></div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+        <div>
+          <h2 style="color:var(--graphite)">Student × Question Heatmap</h2>
+          <p class="panel-sub" style="margin:4px 0 0;">Marks each student scored per question.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="heatmapExportBtn">⬇ Export Heatmap CSV</button>
+      </div>
+      <div class="heatmap-wrap" id="heatmapWrap"></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color:var(--graphite)">Student Rankings — ${esc(gameName)}</h2>
+      <div class="table-wrap"><table><thead><tr>
+        <th>#</th><th>Class</th><th>PRN</th><th>Student</th><th>Round</th><th>Score</th><th>%</th><th>Rating</th>
+      </tr></thead><tbody id="actBody"></tbody></table></div>
+    </div>
+  `;
+
+  document.getElementById("backBtn").addEventListener("click", renderOverview);
+  document.getElementById("heatmapExportBtn").addEventListener("click", () => exportHeatmapCSV(gameName));
+
+  // Round pills
+  const pillWrap = document.getElementById("roundPills");
+  const allPill = createPill("All Rounds", "all");
+  pillWrap.appendChild(allPill);
+  rounds.forEach(r => pillWrap.appendChild(createPill(r, r)));
+
+  function createPill(label, val) {
+    const btn = document.createElement("button");
+    btn.className = "round-pill" + (activeRound === val ? " active" : "");
+    btn.textContent = label;
+    btn.addEventListener("click", () => { activeRound = val; document.querySelectorAll(".round-pill").forEach(p=>p.classList.remove("active")); btn.classList.add("active"); refresh(); });
+    return btn;
+  }
+
+  function getRows() { return activeRound === "all" ? allGameRows : allGameRows.filter(r => (r["Round / Mission"]||r["round"]||r["mission"]||"") === activeRound); }
+
+  function refresh() {
+    const rows = getRows();
+    renderActCharts(rows, rounds, allGameRows);
+    renderActQBars(rows);
+    renderHeatmap(rows);
+    renderActTable(rows);
+  }
+
+  refresh();
+}
+
+function renderActCharts(rows, rounds, allGameRows) {
+  // Score dist
+  destroyChart("actDist");
+  const buckets = {"90-100%":0,"70-89%":0,"50-69%":0,"30-49%":0,"0-29%":0};
+  rows.forEach(r => { const p = pct(r); if(p>=90) buckets["90-100%"]++; else if(p>=70) buckets["70-89%"]++; else if(p>=50) buckets["50-69%"]++; else if(p>=30) buckets["30-49%"]++; else buckets["0-29%"]++; });
+  chartInstances["actDist"] = new Chart(document.getElementById("actDistChart"), {
+    type:"doughnut", data:{ labels:Object.keys(buckets), datasets:[{ data:Object.values(buckets), backgroundColor:["#3E7A52","#5A9A6E","#D98E3B","#C47A2A","#A23B3B"], borderWidth:2, borderColor:"#fff" }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"right", labels:{font:{family:"Inter",size:12},padding:10} } } }
+  });
+
+  // Round avg
+  destroyChart("actRound");
+  const rLabels = rounds;
+  const rAvgs = rounds.map(rd => { const rr = allGameRows.filter(r=>(r["Round / Mission"]||r["round"]||r["mission"]||"")===rd); return rr.length ? Math.round(rr.map(r=>pct(r)).reduce((a,b)=>a+b,0)/rr.length) : 0; });
+  chartInstances["actRound"] = new Chart(document.getElementById("actRoundChart"), {
+    type:"bar", data:{ labels:rLabels, datasets:[{ data:rAvgs, backgroundColor:rAvgs.map(v=>v>=70?"#3E7A52":v>=50?"#D98E3B":"#A23B3B"), borderRadius:8, barThickness:32 }] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:"y", plugins:{legend:{display:false}}, scales:{ x:{beginAtZero:true,max:100,ticks:{callback:v=>v+"%",font:{family:"Inter"}},grid:{color:"#E9E6DF"}}, y:{ticks:{font:{family:"Inter",weight:600,size:11}},grid:{display:false}} } }
+  });
+}
+
+function renderActQBars(rows) {
+  const wrap = document.getElementById("qBars");
+  const insights = document.getElementById("insights");
+  wrap.innerHTML = ""; insights.innerHTML = "";
+
+  const qInfo = getQCols();
+  const qData = [];
+
+  if (qInfo.type === "new" && qInfo.answerCols.length) {
+    qInfo.answerCols.forEach((col, i) => {
+      const markCol = qInfo.marksCols[i];
+      let correct = 0, total = 0, totalMarks = 0, maxMarks = 0;
+      rows.forEach(r => {
+        const answer = r[col]; if (!answer && answer !== 0) return;
+        total++;
+        const marks = parseFloat(r[markCol]) || 0;
+        totalMarks += marks;
+        if (marks > 0) correct++;
+        // Estimate max marks from highest seen
+        if (marks > maxMarks) maxMarks = marks;
+      });
+      if (total === 0) return;
+      const accuracy = Math.round((correct / total) * 100);
+      const qNum = col.replace(" Answer", "");
+      qData.push({ label: qNum, accuracy, correct, total, avgMarks: (totalMarks/total).toFixed(1) });
+    });
+  } else if (qInfo.type === "old" && qInfo.detailCols.length) {
+    qInfo.detailCols.forEach(col => {
+      let correct = 0, total = 0;
+      rows.forEach(r => { const v = String(r[col]||""); if(!v) return; total++; if(v.includes("✅")||v.includes("(good)")||v.includes("Correct")) correct++; });
+      if (total === 0) return;
+      const accuracy = Math.round((correct / total) * 100);
+      qData.push({ label: col.replace(" Detail",""), accuracy, correct, total, avgMarks: "" });
+    });
+  }
+
+  if (!qData.length) { wrap.innerHTML = '<p class="empty">No question-level data yet.</p>'; return; }
+
+  // Sort by accuracy for display
+  const sorted = [...qData].sort((a,b) => a.accuracy - b.accuracy);
+
+  qData.forEach(q => {
+    const cls = q.accuracy >= 70 ? "high" : q.accuracy >= 40 ? "mid" : "low";
+    const row = document.createElement("div"); row.className = "q-bar-row";
+    row.innerHTML = `<div class="q-bar-label">${q.label}</div><div class="q-bar-track"><div class="q-bar-fill ${cls}" style="width:${Math.max(q.accuracy,6)}%">${q.accuracy}%</div></div><div class="q-bar-stat">${q.correct}/${q.total} correct</div>`;
+    wrap.appendChild(row);
+  });
+
+  // Insights
+  const hardest = sorted[0];
+  const easiest = sorted[sorted.length - 1];
+  const classAvg = qData.length ? Math.round(qData.reduce((a,q) => a+q.accuracy, 0) / qData.length) : 0;
+
+  insights.innerHTML = `
+    <div class="insight" style="border-left-color:var(--bad);">
+      <div class="label">Hardest Question</div>
+      <div class="value">${hardest.label}</div>
+      <div class="detail">Only ${hardest.accuracy}% of students got this right (${hardest.correct}/${hardest.total})</div>
+    </div>
+    <div class="insight" style="border-left-color:var(--good);">
+      <div class="label">Easiest Question</div>
+      <div class="value">${easiest.label}</div>
+      <div class="detail">${easiest.accuracy}% accuracy (${easiest.correct}/${easiest.total})</div>
+    </div>
+    <div class="insight">
+      <div class="label">Average Question Accuracy</div>
+      <div class="value">${classAvg}%</div>
+      <div class="detail">Across all ${qData.length} questions</div>
+    </div>
+    <div class="insight">
+      <div class="label">Total Questions Analyzed</div>
+      <div class="value">${qData.length}</div>
+      <div class="detail">From ${rows.length} student submissions</div>
+    </div>
+  `;
+}
+
+function renderHeatmap(rows) {
+  const wrap = document.getElementById("heatmapWrap");
+  const qInfo = getQCols();
+  const cols = qInfo.type === "new" ? qInfo.answerCols : (qInfo.detailCols || []);
+  const markCols = qInfo.type === "new" ? qInfo.marksCols : [];
+
+  if (!cols.length) { wrap.innerHTML = '<p class="empty">No question data for heatmap.</p>'; return; }
+
+  const students = [...new Set(rows.map(r => r["Student Name"]||r["name"]||""))].filter(Boolean).sort();
+
+  let html = '<table class="heatmap"><thead><tr><th>Student</th>';
+  cols.forEach((c,i) => { html += `<th>${c.replace(" Answer","").replace(" Detail","")}</th>`; });
+  html += '<th>Total</th></tr></thead><tbody>';
+
+  students.forEach(name => {
+    const sRows = rows.filter(r => (r["Student Name"]||r["name"]||"") === name);
+    html += `<tr><td>${esc(name)}</td>`;
+    let studentTotal = 0;
+    cols.forEach((col, i) => {
+      // Sum marks across all rounds for this student (not overwrite)
+      let marks = null;
+      sRows.forEach(r => {
+        if (qInfo.type === "new" && markCols[i]) {
+          const m = parseFloat(r[markCols[i]]);
+          if (!isNaN(m)) { marks = (marks === null ? 0 : marks) + m; }
+        } else {
+          const v = String(r[col]||"");
+          if (v.includes("✅")||v.includes("(good)")||v.includes("Correct")) { marks = (marks === null ? 0 : marks) + 10; }
+          else if (v.includes("⚠")||v.includes("(warn)")) { marks = (marks === null ? 0 : marks) + 5; }
+          else if (v) { if (marks === null) marks = 0; }
+        }
+      });
+      if (marks !== null) studentTotal += marks;
+      if (marks === null) { html += '<td class="heat-na">—</td>'; }
+      else if (marks > 0 && marks >= 10) { html += `<td class="heat-full">${marks}</td>`; }
+      else if (marks > 0) { html += `<td class="heat-partial">${marks}</td>`; }
+      else { html += `<td class="heat-zero">0</td>`; }
+    });
+    html += `<td style="font-weight:700;background:var(--card);color:var(--graphite);">${studentTotal}</td></tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function renderActTable(rows) {
+  const sorted = [...rows].sort((a,b) => pct(b) - pct(a));
+  const tbody = document.getElementById("actBody");
+  tbody.innerHTML = sorted.map((r,i) => {
+    const p = pct(r); const name = r["Student Name"]||r["name"]||"";
+    return `<tr><td><b>${i+1}</b></td><td>${esc(r["Class"]||"")}</td><td>${esc(r["PRN"]||"")}</td><td><b>${esc(name)}</b></td><td>${esc(r["Round / Mission"]||r["round"]||r["mission"]||"")}</td>
+      <td>${r["Total Score"]||r["Score"]||r["score"]||""}/${r["Max Score"]||r["Max"]||r["max"]||""}</td>
+      <td>${badgeFor(p)}</td><td>${ratingFor(p)}</td></tr>`;
+  }).join("");
+}
+
+// ============================================================
+// STUDENT DEEP DIVE
+// ============================================================
+function renderStudentDive(name) {
+  const wrap = document.getElementById("studentDive");
+  if (!wrap) return;
+  const sRows = DATA.rows.filter(r => (r["Student Name"]||r["name"]||"") === name);
+  if (!sRows.length) { wrap.innerHTML = '<p class="empty">No data.</p>'; return; }
+
+  const percents = sRows.map(r => pct(r));
+  const avg = Math.round(percents.reduce((a,b)=>a+b,0)/percents.length);
+  const best = Math.max(...percents);
+  const worst = Math.min(...percents);
+
+  let html = `<div class="student-detail">
+    <h3 style="font-family:'Fraunces',serif;font-size:22px;">${esc(name)}</h3>
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);margin:14px 0;">
+      <div class="stat-card"><div class="stat-num" style="font-size:26px;">${avg}%</div><div class="stat-label">Average</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:26px;">${best}%</div><div class="stat-label">Best</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:26px;">${worst}%</div><div class="stat-label">Lowest</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:26px;">${sRows.length}</div><div class="stat-label">Submissions</div></div>
+    </div>
+    <table style="margin-top:12px;"><thead><tr><th>Date</th><th>Activity</th><th>Round</th><th>Score</th><th>%</th></tr></thead><tbody>`;
+  sRows.forEach(r => {
+    const p = pct(r); const cls = p>=70?"badge-good":p>=50?"badge-warn":"badge-bad";
+    html += `<tr><td>${esc(r["Date"]||"")}</td><td>${esc(r["Game"]||r["game"]||"")}</td><td>${esc(r["Round / Mission"]||r["round"]||r["mission"]||"")}</td>
+      <td>${r["Total Score"]||r["Score"]||r["score"]||""}/${r["Max Score"]||r["Max"]||r["max"]||""}</td><td><span class="badge ${cls}">${p}%</span></td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+  wrap.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+// ============================================================
+// DEMO DATA
+// ============================================================
+function generateDemoData() {
+  const names = ["Priya Sharma","Rahul Verma","Ananya Patel","Vikram Singh","Neha Gupta","Arjun Reddy","Kavya Nair","Rohan Das"];
+  const games = [
+    { game:"Build-a-Robot", type:"Type A", rounds:["Warehouse AGV","Aerial Drone","Surgical Robot"], qCount:5, maxPer:20 },
+    { game:"Smart Material Detective", type:"Type B", rounds:["Field-Responsive","Photoactive","Exotic Structures"], qCount:[8,7,5], maxPer:10 }
+  ];
+  const headers = ["Date","Time","Game","Type","Round / Mission","Round #","Student Name","Total Score","Max Score","Percent"];
+  for(let q=1;q<=8;q++){ headers.push("Q"+q+" Answer"); headers.push("Q"+q+" Marks"); }
+  const rows = [];
+  names.forEach(name => {
+    games.forEach(g => {
+      g.rounds.forEach((round, ri) => {
+        const qc = Array.isArray(g.qCount) ? g.qCount[ri] : g.qCount;
+        const max = qc * g.maxPer;
+        let score = 0; const row = {
+          "Date":"27-07-2026","Time":"10:"+String(Math.floor(Math.random()*50)+10)+":00 AM",
+          "Game":g.game,"Type":g.type,"Round / Mission":round,"Round #":"Round "+(ri+1),
+          "Student Name":name
+        };
+        for(let q=1;q<=qc;q++){
+          const correct = Math.random()>0.35;
+          const marks = correct ? g.maxPer : (Math.random()>0.7 && g.maxPer===20 ? 12 : 0);
+          score += marks;
+          row["Q"+q+" Answer"] = correct ? "✅ Correct" : (marks===12 ? "⚠️ Acceptable" : "❌ Wrong");
+          row["Q"+q+" Marks"] = marks;
+        }
+        row["Total Score"] = score; row["Max Score"] = max; row["Percent"] = Math.round((score/max)*100)+"%";
+        rows.push(row);
+      });
+    });
+  });
+  return { headers, rows };
+}
+</script>
+</body>
+</html>

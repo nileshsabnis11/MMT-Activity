@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Material Myths - Myth Buster Activity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --graphite: #1C2B33; --graphite2: #142027; --steel: #3E5C67; --steel-light: #E3EAEC;
+            --copper: #D98E3B; --copper-light: #F6E4C8; --robot-blue: #2A5C7A; --robot-blue-light: #DCEAF1;
+            --ink: #23343C; --muted: #5C7079; --card: #F4F2EE; --white: #FFFFFF;
+            --good: #3E7A52; --good-bg: #E7F3EA; --warn: #9A6B1E; --warn-bg: #FBF0DC; --bad: #A23B3B; --bad-bg: #FBEAEA;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { background-color: var(--graphite); color: var(--ink); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+
+        #app { background-color: var(--white); width: 100%; max-width: 850px; border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); overflow: hidden; display: flex; flex-direction: column; min-height: 600px; }
+        .header { padding: 30px 40px 20px; border-bottom: 2px solid var(--steel-light); }
+        .content { padding: 30px 40px; flex-grow: 1; overflow-y: auto; background-color: #FAFAFA; }
+        .footer { padding: 20px 40px; background-color: var(--white); border-top: 2px solid var(--steel-light); display: flex; justify-content: space-between; align-items: center; }
+
+        h1, h2, h3 { font-family: 'Fraunces', serif; color: var(--graphite); }
+        h1 { font-size: 28px; line-height: 1.2; margin-bottom: 8px; }
+        h2 { font-size: 22px; margin-bottom: 12px; }
+        .eyebrow { text-transform: uppercase; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--copper); margin-bottom: 6px; display: block; }
+        p { font-size: 16px; line-height: 1.5; color: var(--muted); margin-bottom: 16px; }
+
+        .name-gate { background-color: var(--robot-blue-light); padding: 20px; border-radius: 12px; margin-bottom: 24px; }
+        .name-gate label { display: block; font-weight: 600; color: var(--robot-blue); margin-bottom: 8px; }
+        .name-gate input { width: 100%; padding: 12px 16px; border: 2px solid var(--robot-blue); border-radius: 8px; font-size: 16px; font-family: 'Inter', sans-serif; outline: none; transition: box-shadow 0.2s;}
+        .name-gate input:focus { box-shadow: 0 0 0 3px rgba(42, 92, 122, 0.2); }
+
+        .btn-primary { background-color: var(--copper); color: var(--white); border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif;}
+        .btn-primary:hover:not(:disabled) { background-color: #C07A2E; transform: translateY(-1px); }
+        .btn-primary:disabled { background-color: var(--muted); opacity: 0.5; cursor: not-allowed; }
+
+        .statement-card { background: var(--white); border: 2px solid var(--steel-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .statement-text { font-size: 18px; font-weight: 600; color: var(--graphite); margin-bottom: 16px; font-style: italic; border-left: 4px solid var(--copper-light); padding-left: 12px;}
+        
+        .judgment-opts { display: flex; gap: 10px; flex-wrap: wrap; }
+        .chip { background-color: var(--card); border: 2px solid transparent; color: var(--muted); padding: 10px 18px; border-radius: 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; user-select: none; flex-grow: 1; text-align: center;}
+        .chip:hover { background-color: var(--steel-light); color: var(--ink); }
+        
+        .chip.sel-true { background-color: var(--good-bg); border-color: var(--good); color: var(--good); }
+        .chip.sel-false { background-color: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+        .chip.sel-partially { background-color: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+
+        .progress-pill { background-color: var(--robot-blue-light); color: var(--robot-blue); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+
+        .score-badge { width: 120px; height: 120px; border-radius: 60px; background-color: var(--graphite); color: var(--copper); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .score-badge .num { font-family: 'Fraunces', serif; font-size: 36px; font-weight: 700; line-height: 1; }
+        .score-badge .lbl { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+        .result-row { background: var(--white); border-radius: 12px; padding: 16px; margin-bottom: 16px; border-left: 6px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .result-row.correct { border-left-color: var(--good); background-color: var(--good-bg); }
+        .result-row.incorrect { border-left-color: var(--bad); background-color: var(--bad-bg); }
+        
+        .submit-status { font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 6px; }
+        .submit-status.ok { color: var(--good); background-color: var(--good-bg); }
+        .submit-status.warn { color: var(--warn); background-color: var(--warn-bg); }
+        
+        @media (max-width: 700px) {
+            .header, .content, .footer { padding: 20px; }
+            .footer { flex-direction: column; gap: 15px; align-items: stretch; text-align: center; }
+            .btn-primary { width: 100%; }
+            .judgment-opts { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app"></div>
+
+    <script>
+        const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+
+        // ============================================================
+        // HARDCODED INSTITUTION INFO — edit these values as needed
+        // ============================================================
+        const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+        const DEPARTMENT   = "Robotics and Automation";
+
+        // Content directly from L2.pdf and L3.pdf
+        const ROUNDS = [
+            {
+                name: "Round 1: Crystal Foundations",
+                intro: "Evaluate these statements regarding atomic arrangements and the fundamental building blocks of materials.",
+                statements: [
+                    { 
+                        text: "A lattice and a crystal structure are exactly the same thing.", 
+                        answer: "False", 
+                        why: "According to L2, a lattice is just an infinite grid of empty positions. Crystal Structure = Lattice + Motif (the actual atoms sitting on the points)." 
+                    },
+                    { 
+                        text: "Amorphous solids, like glass, possess long-range geometric order.", 
+                        answer: "False", 
+                        why: "Amorphous solids have no long-range order. Only crystalline solids have a repeating pattern that extends over long distances." 
+                    },
+                    { 
+                        text: "Nature favors atomic arrangements that minimize the total energy per unit volume.", 
+                        answer: "True", 
+                        why: "Atoms settle into positions that perfectly balance attractive and repulsive forces, sitting at the minimum of the energy curve." 
+                    }
+                ]
+            },
+            {
+                name: "Round 2: Packing & The Unit Cell",
+                intro: "Assess these claims about SC, BCC, FCC, and HCP structures.",
+                statements: [
+                    { 
+                        text: "In a Body-Centred Cubic (BCC) unit cell, there are exactly 9 whole atoms belonging to that cell.", 
+                        answer: "False", 
+                        why: "There is 1 atom at the body center, and 8 corner atoms. However, corner atoms are shared by 8 cells. N = (8 * 1/8) + 1 = 2 average atoms per cell." 
+                    },
+                    { 
+                        text: "Face-Centred Cubic (FCC) and Hexagonal Close-Packed (HCP) both achieve the maximum 74% atomic packing factor.", 
+                        answer: "True", 
+                        why: "Both structures have an APF of 0.74 and a coordination number of 12, making them the most efficiently packed structures in nature." 
+                    },
+                    { 
+                        text: "For a Simple Cubic (SC) structure, atoms touch along the body diagonal.", 
+                        answer: "False", 
+                        why: "In SC, atoms touch along the cube edge (a = 2r). Atoms touch along the body diagonal in BCC (a√3 = 4r)." 
+                    }
+                ]
+            },
+            {
+                name: "Round 3: Properties & Performance",
+                intro: "Determine the truth of these statements regarding mechanical, thermal, and magnetic behavior.",
+                statements: [
+                    { 
+                        text: "FCC metals like aluminum are highly ductile primarily because they have many available slip systems.", 
+                        answer: "True", 
+                        why: "L3 states that ductility depends on slip systems. FCC's symmetric, close-packed structure provides many equivalent directions for atomic planes to slip past one another." 
+                    },
+                    { 
+                        text: "Heating BCC iron above 912°C changes its structure to FCC, which makes it an even stronger magnet.", 
+                        answer: "False", 
+                        why: "L3 specifically notes that when iron transforms from BCC (ferrite) to FCC (austenite), it LOSES its strong ferromagnetic ordering due to the change in interatomic spacing." 
+                    },
+                    { 
+                        text: "High thermal conductivity in metals is caused entirely by lattice vibrations (phonons).", 
+                        answer: "Partially True", 
+                        why: "While lattice vibrations (phonons) carry heat in all solids, L3 notes that free electrons are the DOMINANT mechanism for heat transfer in metals." 
+                    }
+                ]
+            }
+        ];
+
+        let state = {
+            screen: "start",
+            roundIndex: 0,
+            judgments: {},
+            roundScores: [],
+            isSubmitting: false,
+            submitStatus: null,
+            studentName: "",
+            studentClass: "",
+            prn: ""
+        };
+
+        const appEl = document.getElementById("app");
+
+        function submitResult(payload) {
+            if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
+            return fetch(SHEET_WEBHOOK_URL, {
+                method: "POST", mode: "no-cors",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload),
+            }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+        }
+
+        async function handleSubmission() {
+            state.isSubmitting = true;
+            render();
+            
+            const round = ROUNDS[state.roundIndex];
+            let score = 0;
+            const max = round.statements.length * 10;
+            let detailsArr = [];
+
+            round.statements.forEach((stmt, idx) => {
+                const userChoice = state.judgments[idx];
+                if (userChoice === stmt.answer) {
+                    score += 10;
+                    detailsArr.push(`[Q${idx+1}]: Correct`);
+                } else {
+                    detailsArr.push(`[Q${idx+1}]: Wrong (Picked ${userChoice}, Was ${stmt.answer})`);
+                }
+            });
+
+            state.roundScores.push({ score, max });
+
+            const payload = {
+                game: "Material Myths (L2/L3)",
+                type: "Type E Myth Buster",
+                college: COLLEGE_NAME,
+                department: DEPARTMENT,
+                studentClass: state.studentClass || "",
+                prn: state.prn || "",
+                name: state.studentName || "Anonymous",
+                round: round.name,
+                roundNumber: state.roundIndex + 1,
+                score: score, max: max,
+                percent: Math.round((score / max) * 100),
+                details: detailsArr.join(" | ")
+            };
+
+            const result = await submitResult(payload);
+            state.isSubmitting = false;
+            
+            if (result.sent) { state.submitStatus = { ok: true, msg: "✓ Investigation logged" }; } 
+            else { state.submitStatus = { ok: false, msg: "⚠ Local mode (Offline)" }; }
+            
+            state.screen = "result";
+            render();
+        }
+
+        function startBusting() {
+            const name = document.getElementById("student-name").value.trim();
+            const cls = document.getElementById("student-class").value.trim();
+            const prn = document.getElementById("student-prn").value.trim();
+            if (!name || !cls || !prn) {
+                let err = document.getElementById('name-error');
+                if(!err) {
+                    err = document.createElement('div'); err.id = 'name-error';
+                    err.style.cssText = 'color:var(--bad); margin-top:8px; font-size:14px; font-weight:500;';
+                    document.querySelector('.name-gate').appendChild(err);
+                }
+                err.innerText = "Please fill in your Name, Class, and PRN.";
+                return;
+            }
+            state.studentName = name;
+            state.studentClass = cls;
+            state.prn = prn;
+            state.screen = "task";
+            render();
+        }
+
+        function selectJudgment(index, choice) {
+            state.judgments[index] = choice;
+            render();
+        }
+
+        function renderStart() {
+            appEl.innerHTML = `
+                <div class="header">
+                    <span class="eyebrow">Myth Buster Activity</span>
+                    <h1>Material Properties & Crystals</h1>
+                    <p>Review the statements based on L2 and L3 notes. Separate engineering facts from common misconceptions.</p>
+                </div>
+                <div class="content">
+                    <div class="name-gate">
+                        <label>Your Full Name</label>
+                        <input type="text" id="student-name" placeholder="e.g. Rosalind Franklin" value="${state.studentName || ''}" autocomplete="off">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                            <div>
+                                <label style="margin-top:0;">Class / Section</label>
+                                <input type="text" id="student-class" placeholder="e.g. TE-A" value="${state.studentClass || ''}" autocomplete="off">
+                            </div>
+                            <div>
+                                <label style="margin-top:0;">PRN / Roll No.</label>
+                                <input type="text" id="student-prn" placeholder="e.g. 2023001234" value="${state.prn || ''}" autocomplete="off">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;padding:8px 12px;background:var(--card);border-radius:8px;font-size:12px;color:var(--muted);">
+                            <b>${COLLEGE_NAME}</b> &middot; ${DEPARTMENT}
+                        </div>
+                    </div>
+                    <ul style="color: var(--muted); margin-left: 20px; line-height: 1.6;">
+                        <li><strong>Round 1:</strong> Crystal Foundations</li>
+                        <li><strong>Round 2:</strong> Packing & The Unit Cell</li>
+                        <li><strong>Round 3:</strong> Properties & Performance</li>
+                    </ul>
+                </div>
+                <div class="footer">
+                    <div></div>
+                    <button class="btn-primary" onclick="startBusting()">Begin Analysis</button>
+                </div>
+            `;
+        }
+
+        function renderTask() {
+            const round = ROUNDS[state.roundIndex];
+            const judgedCount = Object.keys(state.judgments).length;
+            const isComplete = judgedCount === round.statements.length;
+
+            let itemsHTML = round.statements.map((stmt, idx) => {
+                const sel = state.judgments[idx];
+                
+                return `
+                    <div class="statement-card">
+                        <div class="statement-text">"${stmt.text}"</div>
+                        <div class="judgment-opts">
+                            <div class="chip ${sel === 'True' ? 'sel-true' : ''}" onclick="selectJudgment(${idx}, 'True')">True</div>
+                            <div class="chip ${sel === 'False' ? 'sel-false' : ''}" onclick="selectJudgment(${idx}, 'False')">False</div>
+                            <div class="chip ${sel === 'Partially True' ? 'sel-partially' : ''}" onclick="selectJudgment(${idx}, 'Partially True')">Partially True</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            appEl.innerHTML = `
+                <div class="header">
+                    <span class="eyebrow">Round ${state.roundIndex + 1} of ${ROUNDS.length}</span>
+                    <h2>${round.name}</h2>
+                    <p style="margin-bottom:0;">${round.intro}</p>
+                </div>
+                <div class="content">
+                    ${itemsHTML}
+                </div>
+                <div class="footer">
+                    <div class="progress-pill">${judgedCount} / ${round.statements.length} Judged</div>
+                    <button class="btn-primary" onclick="handleSubmission()" ${(!isComplete || state.isSubmitting) ? 'disabled' : ''}>
+                        ${state.isSubmitting ? 'Evaluating...' : 'Submit Judgments'}
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderResult() {
+            const round = ROUNDS[state.roundIndex];
+            const cScore = state.roundScores[state.roundIndex];
+            
+            let html = round.statements.map((stmt, idx) => {
+                const userAns = state.judgments[idx];
+                const isCorrect = userAns === stmt.answer;
+                
+                return `
+                    <div class="result-row ${isCorrect ? 'correct' : 'incorrect'}">
+                        <div style="font-size:15px; font-style:italic; margin-bottom:8px; color:var(--graphite);">"${stmt.text}"</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="font-size:14px;">Your Verdict: <strong>${userAns}</strong></span>
+                            <span style="color:${isCorrect ? 'var(--good)' : 'var(--bad)'}; font-weight:700;">
+                                ${isCorrect ? '✓ Correct' : '✗ Incorrect (Truth: ' + stmt.answer + ')'}
+                            </span>
+                        </div>
+                        <div style="font-size:14px; color:var(--ink); background:rgba(255,255,255,0.7); padding:10px; border-radius:6px; border-left:3px solid var(--steel);">
+                            <strong>Why:</strong> ${stmt.why}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            appEl.innerHTML = `
+                <div class="header">
+                    <span class="eyebrow">Round ${state.roundIndex + 1} Complete</span>
+                    <h2>Truth Revealed</h2>
+                </div>
+                <div class="content">
+                    <div class="score-badge">
+                        <div class="num">${Math.round((cScore.score/cScore.max)*100)}%</div>
+                        <div class="lbl">Accuracy</div>
+                    </div>
+                    ${html}
+                </div>
+                <div class="footer">
+                    <div class="submit-status ${state.submitStatus?.ok ? 'ok' : 'warn'}">
+                        ${state.submitStatus?.msg || ''}
+                    </div>
+                    <button class="btn-primary" onclick="
+                        state.roundIndex++; 
+                        state.judgments = {};
+                        if(state.roundIndex >= ROUNDS.length) state.screen = 'final'; 
+                        else state.screen = 'task';
+                        render();
+                    ">
+                        ${state.roundIndex === ROUNDS.length - 1 ? 'View Final Briefing' : 'Next Round'}
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderFinal() {
+            let total = 0, max = 0;
+            state.roundScores.forEach(s => { total += s.score; max += s.max; });
+            
+            appEl.innerHTML = `
+                <div class="header">
+                    <span class="eyebrow">Activity Complete</span>
+                    <h2>Great analysis, ${state.studentName}</h2>
+                </div>
+                <div class="content" style="text-align:center;">
+                    <div class="score-badge" style="width:150px; height:150px; border-radius:75px; margin-top:40px;">
+                        <div class="num" style="font-size:42px;">${Math.round((total/max)*100)}%</div>
+                        <div class="lbl">Final Score</div>
+                    </div>
+                    <p>Your performance data based on Lectures 2 and 3 has been recorded.</p>
+                </div>
+                <div class="footer" style="justify-content:center;">
+                    <button class="btn-primary" onclick="location.reload()">Restart Activity</button>
+                </div>
+            `;
+        }
+
+        function render() {
+            if (state.screen === "start") renderStart();
+            else if (state.screen === "task") renderTask();
+            else if (state.screen === "result") renderResult();
+            else if (state.screen === "final") renderFinal();
+        }
+
+        render();
+    </script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sort & Classify: Metal Alloys & Structure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --graphite: #1C2B33;
+  --graphite2: #142027;
+  --steel: #3E5C67;
+  --steel-light: #E3EAEC;
+  --copper: #D98E3B;
+  --copper-light: #F6E4C8;
+  --robot-blue: #2A5C7A;
+  --robot-blue-light: #DCEAF1;
+  --ink: #23343C;
+  --muted: #5C7079;
+  --card: #F4F2EE;
+  --white: #FFFFFF;
+  --good: #3E7A52;
+  --good-bg: #E7F3EA;
+  --warn: #9A6B1E;
+  --warn-bg: #FBF0DC;
+  --bad: #A23B3B;
+  --bad-bg: #FBEAEA;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--graphite);
+  color: var(--ink);
+  line-height: 1.5;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Fraunces', serif;
+  color: var(--graphite2);
+}
+
+.hidden {
+  display: none !important;
+}
+
+#app {
+  background-color: var(--white);
+  width: 100%;
+  max-width: 800px;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 30px 30px 20px 30px;
+  border-bottom: 1px solid var(--steel-light);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--copper);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.content-area {
+  padding: 30px;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.footer {
+  padding: 20px 30px;
+  background-color: var(--card);
+  border-top: 1px solid var(--steel-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-primary {
+  background-color: var(--copper);
+  color: var(--white);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-primary:hover {
+  background-color: #C07A2E;
+}
+
+.btn-primary:disabled {
+  background-color: var(--muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.name-gate {
+  background-color: var(--robot-blue-light);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(42, 92, 122, 0.2);
+}
+
+.name-gate label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--robot-blue);
+  margin-bottom: 6px;
+  margin-top: 10px;
+}
+
+.name-gate input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--steel);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+}
+
+.name-warning {
+  color: var(--bad);
+  font-size: 13px;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.progress-pill {
+  background-color: var(--robot-blue-light);
+  color: var(--robot-blue);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.buckets-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.category-bucket {
+  background-color: var(--card);
+  border: 2px dashed var(--muted);
+  border-radius: 12px;
+  min-height: 140px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.category-bucket:hover {
+  border-color: var(--copper);
+  background-color: var(--copper-light);
+}
+
+.category-bucket h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  text-align: center;
+  width: 100%;
+  border-bottom: 1px solid var(--steel-light);
+  padding-bottom: 8px;
+}
+
+.pool-area {
+  background-color: #fff;
+  border: 2px solid var(--steel-light);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 100px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pool-label {
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chip {
+  background-color: var(--white);
+  border: 2px solid var(--steel);
+  color: var(--graphite);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.chip.active {
+  background-color: var(--copper);
+  border-color: var(--copper);
+  color: var(--white);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(217, 142, 59, 0.4);
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background-color: var(--graphite);
+  color: var(--white);
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Fraunces', serif;
+  margin: 0 auto 20px auto;
+}
+
+.result-card {
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  border-left: 5px solid;
+}
+
+.result-card h4 {
+  margin-bottom: 5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+}
+
+.result-card.good {
+  background-color: var(--good-bg);
+  border-left-color: var(--good);
+}
+
+.result-card.bad {
+  background-color: var(--bad-bg);
+  border-left-color: var(--bad);
+}
+
+.result-card .pill-label {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 5px;
+  margin-bottom: 8px;
+}
+
+.result-card.good .pill-label { background: rgba(62, 122, 82, 0.15); color: var(--good); }
+.result-card.bad .pill-label { background: rgba(162, 59, 59, 0.15); color: var(--bad); }
+
+.explanation {
+  font-size: 14px;
+  color: var(--graphite);
+  margin-top: 5px;
+}
+
+.submit-status {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 15px;
+}
+.submit-status.ok { background-color: var(--good-bg); color: var(--good); }
+.submit-status.warn { background-color: var(--warn-bg); color: var(--warn); }
+.submit-status.sending { background-color: var(--robot-blue-light); color: var(--robot-blue); }
+
+@media (max-width: 700px) {
+  .buckets-container {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="header">
+    <span class="eyebrow" id="topEyebrow">Materials & Manufacturing Technology</span>
+    <h1 id="topTitle">Interactive Sort & Classify</h1>
+  </div>
+  
+  <div class="content-area" id="contentArea">
+    <!-- Dynamic content renders here -->
+  </div>
+
+  <div class="footer" id="appFooter" class="hidden">
+    <div id="progressIndicator"></div>
+    <button id="primaryActionBtn" class="btn-primary">Start Activity</button>
+  </div>
+</div>
+
+<script>
+const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+const DEPARTMENT = "Robotics and Automation";
+
+const ROUNDS = [
+  {
+    name: "Round 1: The Five Families",
+    intro: "A robotics engineer rarely uses just one material family. Classify these robotic components into their primary material family based on their bonding and typical properties.",
+    categories: ["Metals", "Ceramics & Glasses", "Polymers", "Composites"],
+    items: [
+      { name: "Robot load-bearing frames", correctCategory: "Metals", why: "Metals provide conductive, ductile, and strong properties ideal for structural load-bearing." },
+      { name: "Cutting tool inserts", correctCategory: "Ceramics & Glasses", why: "Ceramics have ionic/covalent bonds making them extremely hard, brittle, and heat-resistant." },
+      { name: "Cable insulation", correctCategory: "Polymers", why: "Polymers consist of covalent chains that are lightweight, flexible, and act as excellent electrical insulators." },
+      { name: "Carbon-fibre robot links", correctCategory: "Composites", why: "Composites combine phases to create tailored properties, such as a high stiffness-to-weight ratio." },
+      { name: "Motor windings", correctCategory: "Metals", why: "Metals (like copper) have an FCC structure allowing excellent electrical conductivity." },
+      { name: "Sensor substrates", correctCategory: "Ceramics & Glasses", why: "Ceramics provide a stable, heat-resistant, and electrically insulating base for delicate sensors." },
+      { name: "3D-printed prototype parts", correctCategory: "Polymers", why: "Polymers can be easily melted and extruded for rapid prototyping due to flexible chain structures." },
+      { name: "Lightweight structural panels", correctCategory: "Composites", why: "Composites combine materials to get lightweight yet highly rigid structural panels tailored by design." }
+    ]
+  },
+  {
+    name: "Round 2: Ferrous vs. Non-Ferrous",
+    intro: "Sort these common engineering alloys into Ferrous (iron-based) and Non-Ferrous categories.",
+    categories: ["Ferrous Alloys", "Non-Ferrous Alloys"],
+    items: [
+      { name: "Steel", correctCategory: "Ferrous Alloys", why: "Steel is primarily Iron (Fe) combined with Carbon." },
+      { name: "Aluminum Alloys", correctCategory: "Non-Ferrous Alloys", why: "Aluminum alloys use Al as the base, often mixed with Cu, Mg, Si, or Zn for lightness." },
+      { name: "Stainless Steel", correctCategory: "Ferrous Alloys", why: "Stainless steel is an iron alloy containing Carbon, Chromium, and Nickel." },
+      { name: "Brass", correctCategory: "Non-Ferrous Alloys", why: "Brass is a non-ferrous copper alloy (Copper + Zinc)." },
+      { name: "Cast Iron", correctCategory: "Ferrous Alloys", why: "Cast iron is a ferrous alloy made of Iron, Carbon, and Silicon." },
+      { name: "Titanium Alloys", correctCategory: "Non-Ferrous Alloys", why: "Titanium is the base metal, used extensively in aerospace for its strength-to-weight ratio." },
+      { name: "Bronze", correctCategory: "Non-Ferrous Alloys", why: "Bronze is a non-ferrous alloy primarily composed of Copper and Tin." },
+      { name: "Inconel", correctCategory: "Non-Ferrous Alloys", why: "Inconel uses Nickel as its base metal, prized for its high-temperature performance." }
+    ]
+  },
+  {
+    name: "Round 3: Structure to Property Map",
+    intro: "Match the physical property or behaviour to the specific crystal structure condition that governs it.",
+    categories: ["Thermal Properties", "Electrical Properties", "Magnetic Properties"],
+    items: [
+      { name: "Phonon transport efficiency", correctCategory: "Thermal Properties", why: "Heat travels mainly as lattice vibrations (phonons), strongly governed by symmetric structures." },
+      { name: "High APF & Coordination Number", correctCategory: "Electrical Properties", why: "Tight atomic packing (like in FCC metals) predicts excellent electrical conductivity." },
+      { name: "Aligned spins in BCC Iron", correctCategory: "Magnetic Properties", why: "BCC iron's specific spacing allows parallel spin alignment, creating strong ferromagnetism." },
+      { name: "Anisotropic expansion", correctCategory: "Thermal Properties", why: "Different bond stiffnesses along various crystallographic directions cause uneven thermal expansion." },
+      { name: "Free electron scattering by defects", correctCategory: "Electrical Properties", why: "Defects in the crystal lattice add resistance by scattering the flow of free electrons." },
+      { name: "Exchange coupling between atoms", correctCategory: "Magnetic Properties", why: "The strength of magnetic interaction depends heavily on interatomic distances and angles." },
+      { name: "Low APF & CN (e.g. diamond cubic)", correctCategory: "Electrical Properties", why: "Open, less densely packed structures generally result in poor electrical conductivity or semiconducting behaviour." }
+    ]
+  }
+];
+
+let state = {
+  screen: "start", // start, task, result, final
+  roundIndex: 0,
+  placements: {}, // { itemName: categoryName }
+  activeItem: null, // item currently clicked/selected
+  roundScores: [], // array of { score, max }
+  studentName: "",
+  studentClass: "",
+  prn: ""
+};
+
+function submitResult(payload) {
+  if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
+  return fetch(SHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+}
+
+function render() {
+  const content = document.getElementById('contentArea');
+  const footer = document.getElementById('appFooter');
+  const progress = document.getElementById('progressIndicator');
+  const actionBtn = document.getElementById('primaryActionBtn');
+  const title = document.getElementById('topTitle');
+  const eyebrow = document.getElementById('topEyebrow');
+
+  if (state.screen === "start") {
+    eyebrow.textContent = "Materials & Manufacturing Technology";
+    title.textContent = "Interactive Sort & Classify";
+    footer.style.display = "flex";
+    progress.innerHTML = "";
+    actionBtn.textContent = "Start Activity";
+    actionBtn.disabled = false;
+    actionBtn.onclick = handleStart;
+
+    content.innerHTML = `
+      <p style="margin-bottom:20px; font-size:16px;">Welcome! In this activity, you will classify components, alloys, and physical properties based on the core concepts of material families and crystal structures.</p>
+      
+      <div class="name-gate">
+        <label>Your Full Name</label>
+        <input type="text" id="studentNameInput" placeholder="e.g. Priya Sharma" value="${state.studentName}" />
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div>
+            <label style="margin-top:0;">Class / Section</label>
+            <input type="text" id="classInput" placeholder="e.g. TE-A" value="${state.studentClass}" />
+          </div>
+          <div>
+            <label style="margin-top:0;">PRN / Roll No.</label>
+            <input type="text" id="prnInput" placeholder="e.g. 2023001234" value="${state.prn}" />
+          </div>
+        </div>
+        
+        <div style="margin-top:15px;padding:8px 12px;background:var(--card);border-radius:8px;font-size:12px;color:var(--muted);">
+          <b>${COLLEGE_NAME}</b> &middot; ${DEPARTMENT}
+        </div>
+        
+        <div class="name-warning hidden" id="nameWarning">Please fill in your Name, Class, and PRN before starting.</div>
+      </div>
+
+      <div style="background:var(--card); padding:15px; border-radius:8px;">
+        <h4 style="margin-bottom:10px;">Activity Overview:</h4>
+        <ul style="margin-left:20px; font-size:14px;">
+          <li><b>Round 1:</b> The Five Families</li>
+          <li><b>Round 2:</b> Ferrous vs. Non-Ferrous Alloys</li>
+          <li><b>Round 3:</b> Structure to Property Map</li>
+        </ul>
+      </div>
+    `;
+  } 
+  
+  else if (state.screen === "task") {
+    const round = ROUNDS[state.roundIndex];
+    eyebrow.textContent = `Round ${state.roundIndex + 1} of ${ROUNDS.length}`;
+    title.textContent = round.name;
+    
+    let placedCount = Object.keys(state.placements).length;
+    let totalItems = round.items.length;
+    
+    progress.innerHTML = `<span class="progress-pill">${placedCount} / ${totalItems} sorted</span>`;
+    actionBtn.textContent = "Submit Round";
+    actionBtn.disabled = placedCount < totalItems;
+    actionBtn.onclick = handleSubmit;
+
+    let bucketsHTML = round.categories.map(cat => {
+      let itemsInBucket = round.items.filter(item => state.placements[item.name] === cat);
+      let itemsHTML = itemsInBucket.map(item => `
+        <div class="chip ${state.activeItem === item.name ? 'active' : ''}" data-name="${item.name}" onclick="handleItemClick('${item.name}')">
+          ${item.name}
+        </div>
+      `).join('');
+
+      return `
+        <div class="category-bucket" onclick="handleCategoryClick('${cat}')">
+          <h3>${cat}</h3>
+          <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+            ${itemsHTML}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    let unsortedItems = round.items.filter(item => !state.placements[item.name]);
+    let poolHTML = unsortedItems.map(item => `
+      <div class="chip ${state.activeItem === item.name ? 'active' : ''}" data-name="${item.name}" onclick="handleItemClick('${item.name}')">
+        ${item.name}
+      </div>
+    `).join('');
+
+    content.innerHTML = `
+      <p style="margin-bottom:25px;">${round.intro}</p>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
+        <i>Instructions: Tap an item below to highlight it, then tap a category box to place it.</i>
+      </div>
+      
+      <div class="buckets-container">
+        ${bucketsHTML}
+      </div>
+      
+      <div class="pool-area" onclick="handlePoolClick(event)">
+        <div class="pool-label">Unsorted Items</div>
+        ${poolHTML || '<span style="color:var(--muted); font-size:13px; font-style:italic;">All items sorted!</span>'}
+      </div>
+    `;
+  }
+
+  else if (state.screen === "result") {
+    const round = ROUNDS[state.roundIndex];
+    eyebrow.textContent = `Results: Round ${state.roundIndex + 1}`;
+    title.textContent = round.name;
+    
+    progress.innerHTML = "";
+    actionBtn.textContent = (state.roundIndex < ROUNDS.length - 1) ? "Next Round" : "See Final Score";
+    actionBtn.disabled = false;
+    actionBtn.onclick = handleNext;
+
+    let scoreData = state.roundScores[state.roundIndex];
+    
+    let feedbackHTML = round.items.map(item => {
+      let userChoice = state.placements[item.name];
+      let correct = userChoice === item.correctCategory;
+      let cardClass = correct ? "good" : "bad";
+      
+      return `
+        <div class="result-card ${cardClass}">
+          <h4>${item.name}</h4>
+          <div>
+            <span class="pill-label">Your choice: ${userChoice}</span>
+            ${!correct ? `<span class="pill-label" style="background:#E3EAEC; color:#1C2B33; border:1px solid #5C7079;">Correct: ${item.correctCategory}</span>` : ''}
+          </div>
+          <div class="explanation"><b>Why:</b> ${item.why}</div>
+        </div>
+      `;
+    }).join('');
+
+    content.innerHTML = `
+      <div id="submitStatusBanner"></div>
+      <div style="text-align:center;">
+        <div class="score-badge">${Math.round((scoreData.score / scoreData.max) * 100)}%</div>
+        <p style="font-weight:600; margin-bottom:20px;">You scored ${scoreData.score} out of ${scoreData.max} points.</p>
+      </div>
+      <div>
+        ${feedbackHTML}
+      </div>
+    `;
+  }
+
+  else if (state.screen === "final") {
+    eyebrow.textContent = "Activity Complete";
+    title.textContent = "Final Score Summary";
+    
+    progress.innerHTML = "";
+    actionBtn.textContent = "Play Again";
+    actionBtn.disabled = false;
+    actionBtn.onclick = handleRestart;
+
+    let totalScore = state.roundScores.reduce((acc, curr) => acc + curr.score, 0);
+    let totalMax = state.roundScores.reduce((acc, curr) => acc + curr.max, 0);
+    let finalPct = Math.round((totalScore / totalMax) * 100);
+
+    let breakdownHTML = state.roundScores.map((score, idx) => `
+      <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--steel-light);">
+        <span>Round ${idx + 1}: ${ROUNDS[idx].name}</span>
+        <strong>${score.score} / ${score.max}</strong>
+      </div>
+    `).join('');
+
+    content.innerHTML = `
+      <div style="text-align:center; padding: 20px 0;">
+        <div class="score-badge" style="width:120px; height:120px; font-size:36px;">${finalPct}%</div>
+        <h2 style="margin-bottom:10px;">Excellent work, ${state.studentName.split(' ')[0]}!</h2>
+        <p style="color:var(--muted); margin-bottom:30px;">You have completed all classification rounds.</p>
+      </div>
+      
+      <div style="background:var(--card); border-radius:12px; padding:20px;">
+        <h3 style="margin-bottom:15px; font-size:16px; border-bottom:2px solid var(--steel-light); padding-bottom:10px;">Score Breakdown</h3>
+        ${breakdownHTML}
+        <div style="display:flex; justify-content:space-between; padding:10px; margin-top:10px; font-weight:700; font-size:18px;">
+          <span>Total Score</span>
+          <span style="color:var(--copper);">${totalScore} / ${totalMax}</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function handleStart() {
+  const name = document.getElementById('studentNameInput').value;
+  const cls = document.getElementById('classInput').value;
+  const prn = document.getElementById('prnInput').value;
+  const warn = document.getElementById('nameWarning');
+
+  if (!name.trim() || !cls.trim() || !prn.trim()) {
+    warn.classList.remove('hidden');
+    return;
+  }
+
+  state.studentName = name.trim();
+  state.studentClass = cls.trim();
+  state.prn = prn.trim();
+  state.screen = "task";
+  state.roundIndex = 0;
+  state.placements = {};
+  state.activeItem = null;
+  state.roundScores = [];
+  render();
+}
+
+function handleItemClick(itemName) {
+  // Toggle selection
+  if (state.activeItem === itemName) {
+    state.activeItem = null;
+  } else {
+    state.activeItem = itemName;
+  }
+  render();
+}
+
+function handleCategoryClick(categoryName) {
+  if (state.activeItem) {
+    state.placements[state.activeItem] = categoryName;
+    state.activeItem = null;
+    render();
+  }
+}
+
+function handlePoolClick(e) {
+  // If clicked directly on the pool area (not a chip), and an item is active, move it back to pool
+  if (e.target.classList.contains('pool-area') && state.activeItem) {
+    delete state.placements[state.activeItem];
+    state.activeItem = null;
+    render();
+  }
+}
+
+function handleSubmit() {
+  const round = ROUNDS[state.roundIndex];
+  let score = 0;
+  let max = round.items.length * 10;
+  let detailsArr = [];
+
+  round.items.forEach(item => {
+    let userChoice = state.placements[item.name];
+    if (userChoice === item.correctCategory) {
+      score += 10;
+      detailsArr.push(`[v] ${item.name}`);
+    } else {
+      detailsArr.push(`[x] ${item.name} (Chose: ${userChoice})`);
+    }
+  });
+
+  let pct = Math.round((score / max) * 100);
+  state.roundScores.push({ score, max });
+
+  // Move to result screen immediately to show sending status
+  state.screen = "result";
+  render();
+
+  const statusEl = document.getElementById('submitStatusBanner');
+  statusEl.className = "submit-status sending";
+  statusEl.innerHTML = "Sending result to your instructor...";
+
+  let payload = {
+    game: "Sort & Classify: Metal Alloys",
+    type: "Type C",
+    college: COLLEGE_NAME,
+    department: DEPARTMENT,
+    studentClass: state.studentClass,
+    prn: state.prn,
+    name: state.studentName,
+    round: round.name,
+    roundNumber: state.roundIndex + 1,
+    score: score,
+    max: max,
+    percent: pct,
+    details: detailsArr.join(" | ")
+  };
+
+  submitResult(payload).then(res => {
+    if (res.sent) {
+      statusEl.className = "submit-status ok";
+      statusEl.innerHTML = "✓ Result securely sent to your instructor.";
+    } else {
+      statusEl.className = "submit-status warn";
+      statusEl.innerHTML = "⚠ Couldn't reach the results sheet. (Offline/Network error)";
+    }
+  });
+}
+
+function handleNext() {
+  if (state.roundIndex < ROUNDS.length - 1) {
+    state.roundIndex++;
+    state.screen = "task";
+    state.placements = {};
+    state.activeItem = null;
+    render();
+  } else {
+    state.screen = "final";
+    render();
+  }
+}
+
+function handleRestart() {
+  // Preserve student credentials
+  state = {
+    screen: "start",
+    roundIndex: 0,
+    placements: {},
+    activeItem: null,
+    roundScores: [],
+    studentName: state.studentName,
+    studentClass: state.studentClass,
+    prn: state.prn
+  };
+  render();
+}
+
+window.onload = () => {
+  render();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Material Detective</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graphite:#1C2B33;
+    --graphite2:#142027;
+    --steel:#3E5C67;
+    --steel-light:#E3EAEC;
+    --copper:#D98E3B;
+    --copper-light:#F6E4C8;
+    --robot-blue:#2A5C7A;
+    --robot-blue-light:#DCEAF1;
+    --ink:#23343C;
+    --muted:#5C7079;
+    --card:#F4F2EE;
+    --white:#FFFFFF;
+    --good:#3E7A52;
+    --good-bg:#E7F3EA;
+    --bad:#A23B3B;
+    --bad-bg:#FBEAEA;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--graphite);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+  }
+  .app{ width:100%; max-width:1180px; }
+  .eyebrow{
+    font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--copper); margin:0 0 10px;
+  }
+  h1,h2,h3{ font-family:'Fraunces',serif; color:var(--white); margin:0; }
+  .top{ text-align:left; margin-bottom:28px; }
+  .top h1{ font-size:clamp(28px,4vw,42px); font-weight:700; line-height:1.08; color:var(--white); }
+  .top p{ color:var(--steel-light); font-size:16px; max-width:760px; line-height:1.5; margin:10px 0 0; }
+
+  .panel{
+    background:var(--white);
+    border-radius:18px;
+    padding:36px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:700; font-size:15px;
+    border:none; border-radius:10px; padding:13px 22px; cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--copper); color:var(--graphite); }
+  .btn-primary:hover{ opacity:.92; }
+  .btn-primary:disabled{ background:#D8D2C4; color:#9A9385; cursor:not-allowed; }
+  .btn-ghost{ background:var(--steel-light); color:var(--graphite); }
+  .btn-ghost:hover{ opacity:.85; }
+
+  /* START SCREEN */
+  .rounds-preview{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:22px; }
+  .round-card{ background:var(--card); border-radius:14px; padding:22px; }
+  .round-card .num{ font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:var(--copper); }
+  .round-card h3{ color:var(--graphite); font-size:19px; margin:8px 0 8px; }
+  .round-card p{ color:var(--muted); font-size:14px; line-height:1.4; margin:0; }
+  .round-card .count{ display:inline-block; margin-top:10px; font-size:12px; font-weight:700; color:var(--robot-blue); background:var(--robot-blue-light); padding:5px 10px; border-radius:12px; }
+
+  /* CLUE SCREEN */
+  .round-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:22px; flex-wrap:wrap; }
+  .round-header h2{ color:var(--graphite); font-size:26px; }
+  .round-sub{ color:var(--muted); font-size:15px; max-width:640px; line-height:1.5; margin-top:6px; }
+  .progress-pill{ background:var(--robot-blue-light); color:var(--robot-blue); font-weight:700; font-size:14px; padding:8px 16px; border-radius:20px; white-space:nowrap; }
+
+  .clue{ background:var(--card); border-radius:12px; padding:20px 22px; margin-bottom:16px; border:2px solid transparent; }
+  .clue.filled{ border-color:var(--copper-light); }
+  .clue-text{ font-family:'Fraunces',serif; font-style:italic; font-size:18px; color:var(--graphite); margin-bottom:14px; line-height:1.4; }
+  .clue-text .qnum{
+    font-family:'Inter',sans-serif; font-style:normal; font-weight:800; font-size:12px;
+    background:var(--copper); color:var(--graphite); border-radius:50%; display:inline-flex;
+    align-items:center; justify-content:center; width:24px; height:24px; margin-right:10px; vertical-align:middle;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600;
+    padding:9px 14px; border-radius:9px; background:var(--white); color:var(--ink);
+    border:1.5px solid #E3E0D8; cursor:pointer; transition:all .12s ease;
+  }
+  .chip:hover{ border-color:var(--copper); }
+  .chip.selected{ background:var(--graphite); color:var(--white); border-color:var(--graphite); }
+
+  .submit-row{ display:flex; justify-content:flex-end; margin-top:8px; gap:10px; }
+
+  /* RESULTS */
+  .score-hero{ display:flex; align-items:center; gap:28px; margin-bottom:26px; flex-wrap:wrap; }
+  .score-badge{
+    width:120px; height:120px; border-radius:50%; background:var(--graphite); color:var(--white);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .score-badge .num{ font-family:'Fraunces',serif; font-size:32px; font-weight:700; line-height:1; }
+  .score-badge .max{ font-size:11px; color:var(--steel-light); margin-top:2px; }
+  .score-copy h2{ color:var(--graphite); font-size:25px; margin-bottom:6px; }
+  .score-copy p{ color:var(--muted); font-size:15px; line-height:1.5; max-width:600px; margin:0; }
+
+  .result-card{ display:flex; gap:14px; align-items:flex-start; border-radius:12px; padding:16px 18px; margin-bottom:12px; }
+  .result-card.good{ background:var(--good-bg); }
+  .result-card.bad{ background:var(--bad-bg); }
+  .result-icon{ font-size:20px; line-height:1; margin-top:1px; }
+  .result-body .rclue{ font-family:'Fraunces',serif; font-style:italic; font-size:15px; color:var(--graphite); margin-bottom:4px; }
+  .result-body .rchoice{ font-size:13px; font-weight:700; margin-bottom:4px; }
+  .result-card.good .rchoice{ color:var(--good); }
+  .result-card.bad .rchoice{ color:var(--bad); }
+  .result-body .rtext{ font-size:13.5px; color:var(--ink); line-height:1.4; }
+
+  .results-actions{ display:flex; gap:12px; margin-top:22px; flex-wrap:wrap; }
+
+  /* FINAL SUMMARY */
+  .final-rounds{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:24px 0; }
+  .final-round-card{ background:var(--card); border-radius:12px; padding:18px; text-align:center; }
+  .final-round-card .rname{ font-weight:700; color:var(--graphite); font-size:14.5px; margin-bottom:8px; }
+  .final-round-card .rscore{ font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--copper); }
+
+  .legend{ margin-top:20px; padding-top:16px; border-top:1px solid #E9E6DF; font-size:13px; color:var(--muted); }
+
+  .name-gate{ background:var(--robot-blue-light); border-radius:12px; padding:16px 20px; }
+  .name-gate label{ display:block; font-size:13px; font-weight:700; color:var(--robot-blue); margin-bottom:8px; }
+  .name-gate input{
+    width:100%; max-width:360px; font-family:'Inter',sans-serif; font-size:15px;
+    padding:11px 14px; border-radius:8px; border:1.5px solid #C7DAE3; background:var(--white);
+  }
+  .name-warning{ color:var(--bad); font-size:13px; font-weight:600; margin-top:8px; }
+  .hidden{ display:none !important; }
+  .submit-status{ font-size:13.5px; font-weight:600; margin-top:4px; }
+  .submit-status.ok{ color:var(--good); }
+  .submit-status.warn{ color:#9A6B1E; }
+
+  @media (max-width:700px){
+    body{ padding:14px 10px 40px; }
+    .panel{ padding:20px 16px; border-radius:14px; }
+    .rounds-preview{ grid-template-columns:1fr; }
+    .final-rounds{ grid-template-columns:1fr; }
+    .score-hero{ flex-direction:column; align-items:flex-start; }
+    .round-header{ flex-direction:column; }
+    .chips{ gap:6px; }
+    .chip{ font-size:12.5px; padding:8px 11px; }
+    .clue-text{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <p class="eyebrow">Materials Science for Robotics &middot; Interactive Activity</p>
+    <h1>Smart Material Detective</h1>
+    <p>Twenty clues. Three rounds. Every clue describes a real material or micro-device from today's lecture \u2014 figure out which one before your classmates do.</p>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+// ============================================================
+// TEACHER RESULTS TRACKING
+// Paste your Google Apps Script Web App URL below (see setup guide).
+// Leave blank to run the game with no result tracking.
+// ============================================================
+const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+
+// ============================================================
+// HARDCODED INSTITUTION INFO — edit these values as needed
+// ============================================================
+const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+const DEPARTMENT = "Robotics and Automation";
+
+function submitResult(payload) {
+  if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
+  return fetch(SHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+}
+
+const ROUNDS = [
+  {
+    name: "Field-Responsive Materials",
+    tag: "Round 1",
+    intro: "Five materials that all react to something \u2014 heat, light, or a field. Tell them apart.",
+    options: ["Shape Memory Alloy", "Chromoactive Material", "Magnetorheological Material", "Electrostrictive Material", "Magnetostrictive Material"],
+    clues: [
+      { text: "Bend me while I'm cool, then warm me back up \u2014 I'll snap right back to my original shape.", answer: "Shape Memory Alloy",
+        why: "That heat-triggered shape recovery, via a martensite\u2192austenite phase change, is the signature of a Shape Memory Alloy like Nitinol." },
+      { text: "I turn from liquid to near-solid in milliseconds the instant you switch on a magnetic field.", answer: "Magnetorheological Material",
+        why: "That instant, reversible fluid-to-near-solid change under a magnetic field is exactly what an MR fluid does \u2014 used in brakes, clutches, and shock absorbers." },
+      { text: "My colour shifts as the temperature around me changes \u2014 no battery required.", answer: "Chromoactive Material",
+        why: "A pure colour change with temperature, zero electronics involved, is the classic Chromoactive (thermochromic) behavior." },
+      { text: "Apply a voltage and I'll deform \u2014 but flip the polarity and I deform exactly the same way. No reversal.", answer: "Electrostrictive Material",
+        why: "That quadratic, polarity-independent deformation under an electric field is what separates Electrostrictive materials from piezoelectrics." },
+      { text: "Put me in a magnetic field and I physically change size. Terfenol-D is my most famous example.", answer: "Magnetostrictive Material",
+        why: "Changing dimension \u2014 not stiffness \u2014 under a magnetic field, with Terfenol-D as the poster child, is Magnetostriction." },
+      { text: "I'm the reason a robot leg joint packed with the right fluid can go from soft to rigid in an instant.", answer: "Magnetorheological Material",
+        why: "Instantly tunable joint stiffness on demand is the signature robotics use of MR fluid." },
+      { text: "Heat me past my transition temperature and I recover a shape I \u201Cremember\u201D \u2014 Nitinol is my most common form.", answer: "Shape Memory Alloy",
+        why: "Nitinol (Nickel-Titanium) is the most widely used Shape Memory Alloy." },
+      { text: "I make an overheating motor housing change colour so you can spot trouble at a glance \u2014 zero power needed.", answer: "Chromoactive Material",
+        why: "A zero-power, glance-and-know visual warning is exactly the robotics use case for a Chromoactive coating." },
+    ],
+  },
+  {
+    name: "Photoactive Materials",
+    tag: "Round 2",
+    intro: "Seven families, one trigger: light. Same stimulus, seven completely different jobs.",
+    options: ["Photopolymer", "Photoconductor", "Photosensitizer", "Photochromic Material", "Photovoltaic Material", "Photocatalyst", "Photoswitchable Molecule"],
+    clues: [
+      { text: "Shine UV light on me and I harden \u2014 that's how a 3D printer builds an object layer by layer.", answer: "Photopolymer",
+        why: "Hardening (or softening) under UV light is the defining trait of a Photopolymer, used in 3D printing and photolithography." },
+      { text: "I become a better conductor of electricity the moment light hits me \u2014 you'll find me inside a photocopier.", answer: "Photoconductor",
+        why: "Increased electrical conductivity under light is the Photoconductor's job, used in photocopiers and light sensors." },
+      { text: "I trigger a chemical reaction in a nearby molecule when light hits me \u2014 doctors use me in cancer therapy.", answer: "Photosensitizer",
+        why: "Producing a chemical change in another molecule under light is exactly what a Photosensitizer does in photodynamic therapy." },
+      { text: "My colour changes when light hits me \u2014 I'm the reason some sunglasses auto-tint outdoors.", answer: "Photochromic Material",
+        why: "A colour change triggered by light \u2014 not temperature \u2014 is the Photochromic material's signature." },
+      { text: "I convert sunlight directly into electricity \u2014 you'll find me covering a solar panel.", answer: "Photovoltaic Material",
+        why: "Direct light-to-electricity conversion is the Photovoltaic material's job \u2014 the heart of every solar cell." },
+      { text: "I speed up a chemical reaction when light hits me \u2014 I can make a surface clean itself or help split water into hydrogen.", answer: "Photocatalyst",
+        why: "Accelerating a reaction under light \u2014 self-cleaning surfaces, water splitting \u2014 is the Photocatalyst's role." },
+      { text: "Shine light on me and I flip between two stable structures \u2014 useful for optical data storage and molecular machines.", answer: "Photoswitchable Molecule",
+        why: "Flipping between two stable states under light is exactly what a Photoswitchable Molecule does." },
+    ],
+  },
+  {
+    name: "Exotic & Micro Structures",
+    tag: "Round 3",
+    intro: "Materials that break the usual rules \u2014 no fixed crystal structure, or barely any structure at all.",
+    options: ["MEMS", "Metallic Glass", "Quasicrystalline Material", "Nanocrystalline Material"],
+    clues: [
+      { text: "I pack sensors, actuators, microstructures, and electronics onto a single chip a few micrometers across.", answer: "MEMS",
+        why: "Combining all four of those on one tiny chip is the definition of a Micro-Electro-Mechanical System." },
+      { text: "My atoms are arranged in total disorder, like glass \u2014 yet I still conduct electricity and shine like a metal.", answer: "Metallic Glass",
+        why: "A disordered, glass-like structure that still conducts electricity and has metallic luster is exactly Metallic Glass." },
+      { text: "My pattern is ordered, but it never quite repeats \u2014 and I make a fantastic non-stick coating.", answer: "Quasicrystalline Material",
+        why: "Ordered but non-periodic is the definition of a quasicrystal, and non-stick coatings are one of its signature applications." },
+      { text: "My crystal grains are only a few nanometers wide \u2014 that makes me stronger and harder than my coarse-grained cousins, but also less dense.", answer: "Nanocrystalline Material",
+        why: "Nanometer-scale grains driving up strength and hardness while density drops is classic Nanocrystalline behavior." },
+      { text: "I'm the accelerometer-and-gyroscope pair inside every drone's flight controller.", answer: "MEMS",
+        why: "The IMU (accelerometer + gyroscope) that gives drones their sense of orientation is a MEMS device." },
+    ],
+  },
+];
+
+let state = { screen: "start", roundIndex: 0, answers: {}, roundScores: [], studentName: "", studentClass: "", prn: "" };
+
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
+
+function render(){
+  const panel = document.getElementById("panel");
+  panel.innerHTML = "";
+  if (state.screen === "start") panel.appendChild(renderStart());
+  else if (state.screen === "round") panel.appendChild(renderRound());
+  else if (state.screen === "roundResults") panel.appendChild(renderRoundResults());
+  else if (state.screen === "final") panel.appendChild(renderFinal());
+}
+
+function renderStart(){
+  const wrap = el(`<div>
+    <div class="name-gate">
+      <label for="studentNameInput">Your Full Name</label>
+      <input type="text" id="studentNameInput" placeholder="e.g. Priya Sharma" value="${state.studentName.replace(/"/g,'&quot;')}" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        <div>
+          <label for="classInput" style="margin-top:0;">Class / Section</label>
+          <input type="text" id="classInput" placeholder="e.g. TE-A" value="${state.studentClass.replace(/"/g,'&quot;')}" />
+        </div>
+        <div>
+          <label for="prnInput" style="margin-top:0;">PRN / Roll No.</label>
+          <input type="text" id="prnInput" placeholder="e.g. 2023001234" value="${state.prn.replace(/"/g,'&quot;')}" />
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:8px 12px;background:var(--card);border-radius:8px;font-size:12px;color:var(--muted);">
+        <b>${COLLEGE_NAME}</b> &middot; ${DEPARTMENT}
+      </div>
+      <div class="name-warning hidden" id="nameWarning">Please fill in your Name, Class, and PRN before starting.</div>
+    </div>
+    <h2 style="font-family:'Fraunces',serif;color:var(--graphite);font-size:24px;margin-top:22px;">Ready to investigate?</h2>
+    <p style="color:var(--muted);font-size:15px;margin-top:6px;">Work through all three rounds in order. Each clue has one correct material \u2014 pick it, and you'll see why right away.</p>
+    <div class="rounds-preview"></div>
+    <div class="submit-row" style="margin-top:26px;justify-content:flex-start;">
+      <button class="btn btn-primary" id="beginBtn">Start Round 1</button>
+    </div>
+  </div>`);
+  const nameInput = wrap.querySelector("#studentNameInput");
+  const classInput = wrap.querySelector("#classInput");
+  const prnInput = wrap.querySelector("#prnInput");
+  nameInput.addEventListener("input", () => { state.studentName = nameInput.value; });
+  classInput.addEventListener("input", () => { state.studentClass = classInput.value; });
+  prnInput.addEventListener("input", () => { state.prn = prnInput.value; });
+  const grid = wrap.querySelector(".rounds-preview");
+  ROUNDS.forEach((r, i) => {
+    const card = el(`<div class="round-card">
+      <div class="num">0${i+1}</div>
+      <h3>${r.name}</h3>
+      <p>${r.intro}</p>
+      <span class="count">${r.clues.length} clues</span>
+    </div>`);
+    grid.appendChild(card);
+  });
+  wrap.querySelector("#beginBtn").addEventListener("click", () => {
+    if (!state.studentName.trim() || !state.studentClass.trim() || !state.prn.trim()){
+      wrap.querySelector("#nameWarning").classList.remove("hidden");
+      if (!state.studentName.trim()) nameInput.focus();
+      else if (!state.studentClass.trim()) classInput.focus();
+      else prnInput.focus();
+      return;
+    }
+    state.screen = "round"; state.roundIndex = 0; state.answers = {};
+    render();
+  });
+  return wrap;
+}
+
+function renderRound(){
+  const round = ROUNDS[state.roundIndex];
+  const total = round.clues.length;
+  const done = Object.keys(state.answers).length;
+  const allDone = done === total;
+
+  const wrap = el(`<div>
+    <div class="round-header">
+      <div>
+        <h2>${round.tag}: ${round.name}</h2>
+        <p class="round-sub">${round.intro}</p>
+      </div>
+      <div class="progress-pill">${done} / ${total} answered</div>
+    </div>
+    <div class="clues"></div>
+  </div>`);
+
+  const cluesWrap = wrap.querySelector(".clues");
+  round.clues.forEach((c, idx) => {
+    const chosen = state.answers[idx];
+    const clueEl = el(`<div class="clue ${chosen ? 'filled':''}">
+      <div class="clue-text"><span class="qnum">${idx+1}</span>\u201C${c.text}\u201D</div>
+      <div class="chips"></div>
+    </div>`);
+    const chipsWrap = clueEl.querySelector(".chips");
+    round.options.forEach(opt => {
+      const chip = el(`<button class="chip ${chosen===opt?'selected':''}">${opt}</button>`);
+      chip.addEventListener("click", () => {
+        state.answers[idx] = opt;
+        render();
+      });
+      chipsWrap.appendChild(chip);
+    });
+    cluesWrap.appendChild(clueEl);
+  });
+
+  const actions = el(`<div class="submit-row">
+    <button class="btn btn-ghost" id="backBtn">Back to Overview</button>
+    <button class="btn btn-primary" id="submitBtn" ${allDone ? "" : "disabled"}>Check Round ${state.roundIndex+1}</button>
+  </div>`);
+  actions.querySelector("#backBtn").addEventListener("click", () => { state.screen = "start"; render(); });
+  actions.querySelector("#submitBtn").addEventListener("click", () => {
+    if (!allDone) return;
+    state.screen = "roundResults";
+    render();
+  });
+  wrap.appendChild(actions);
+  return wrap;
+}
+
+function scoreRound(){
+  const round = ROUNDS[state.roundIndex];
+  let score = 0;
+  const results = round.clues.map((c, idx) => {
+    const chosen = state.answers[idx];
+    const correct = chosen === c.answer;
+    if (correct) score += 10;
+    return { clue: c.text, chosen, correct, answer: c.answer, why: c.why };
+  });
+  return { score, max: round.clues.length*10, results };
+}
+
+function renderRoundResults(){
+  const round = ROUNDS[state.roundIndex];
+  const { score, max, results } = scoreRound();
+  const pct = Math.round((score/max)*100);
+  const isLastRound = state.roundIndex === ROUNDS.length - 1;
+
+  const wrap = el(`<div>
+    <div class="score-hero">
+      <div class="score-badge"><div class="num">${score}</div><div class="max">/ ${max} pts</div></div>
+      <div class="score-copy">
+        <h2>${round.tag} Complete</h2>
+        <p>Here's how each clue in <b>${round.name}</b> panned out.</p>
+      </div>
+    </div>
+    <div class="results-list"></div>
+    <div class="results-actions">
+      <button class="btn btn-primary" id="nextBtn">${isLastRound ? "See Final Results" : "Start Round " + (state.roundIndex+2)}</button>
+    </div>
+    <div class="submit-status" id="submitStatus">Sending round result to your instructor\u2026</div>
+  </div>`);
+
+  const statusEl = wrap.querySelector("#submitStatus");
+  if (!SHEET_WEBHOOK_URL) {
+    statusEl.textContent = "";
+  } else {
+    submitResult({
+      game: "Smart Material Detective",
+      college: COLLEGE_NAME,
+      department: DEPARTMENT,
+      studentClass: state.studentClass || "",
+      prn: state.prn || "",
+      name: state.studentName || "Anonymous",
+      round: round.name,
+      roundNumber: state.roundIndex + 1,
+      score, max, percent: pct,
+      details: results.map(r => `${r.correct ? "\u2705" : "\u274C"} ${r.answer}`).join(" | "),
+    }).then(res => {
+      if (res.sent) {
+        statusEl.textContent = "\u2713 Round result sent to your instructor";
+        statusEl.className = "submit-status ok";
+      } else {
+        statusEl.textContent = "\u26A0 Couldn't reach the results sheet \u2014 your instructor may not see this attempt";
+        statusEl.className = "submit-status warn";
+      }
+    });
+  }
+
+  const list = wrap.querySelector(".results-list");
+  results.forEach(r => {
+    const card = el(`<div class="result-card ${r.correct ? 'good' : 'bad'}">
+      <div class="result-icon">${r.correct ? "\u2705" : "\u274C"}</div>
+      <div class="result-body">
+        <div class="rclue">\u201C${r.clue}\u201D</div>
+        <div class="rchoice">${r.correct ? `Correct \u2014 ${r.answer}` : `You said ${r.chosen} \u2014 it's actually ${r.answer}`}</div>
+        <div class="rtext">${r.why}</div>
+      </div>
+    </div>`);
+    list.appendChild(card);
+  });
+
+  wrap.querySelector("#nextBtn").addEventListener("click", () => {
+    state.roundScores[state.roundIndex] = { name: round.name, score, max };
+    if (isLastRound) {
+      state.screen = "final";
+    } else {
+      state.roundIndex += 1;
+      state.answers = {};
+      state.screen = "round";
+    }
+    render();
+  });
+
+  return wrap;
+}
+
+function ratingFor(pct){
+  if (pct >= 90) return { title:"Master Detective", emoji:"\uD83D\uDD75\uFE0F" };
+  if (pct >= 70) return { title:"Sharp-Eyed Investigator", emoji:"\uD83D\uDD0D" };
+  if (pct >= 50) return { title:"Promising Rookie", emoji:"\uD83D\uDCDD" };
+  return { title:"Back to the Case Files", emoji:"\uD83D\uDCC1" };
+}
+
+function renderFinal(){
+  const totalScore = state.roundScores.reduce((a,r) => a+r.score, 0);
+  const totalMax = state.roundScores.reduce((a,r) => a+r.max, 0);
+  const pct = Math.round((totalScore/totalMax)*100);
+  const rating = ratingFor(pct);
+
+  const wrap = el(`<div>
+    <div class="score-hero">
+      <div class="score-badge"><div class="num">${pct}%</div><div class="max">${totalScore} / ${totalMax} pts</div></div>
+      <div class="score-copy">
+        <h2>${rating.emoji} ${rating.title}</h2>
+        <p>You've been through all three rounds \u2014 field-responsive materials, photoactive materials, and exotic structures.</p>
+      </div>
+    </div>
+    <div class="final-rounds"></div>
+    <div class="results-actions">
+      <button class="btn btn-primary" id="restartBtn">Play Again</button>
+    </div>
+    <div class="submit-status" id="submitStatus">Sending your result to your instructor\u2026</div>
+    <div class="legend">Each correct clue = 10 pts. Discuss any misses as a class \u2014 they're usually the easiest ones to mix up.</div>
+  </div>`);
+
+  const statusEl = wrap.querySelector("#submitStatus");
+  if (!SHEET_WEBHOOK_URL) {
+    statusEl.textContent = "";
+  } else {
+    submitResult({
+      game: "Smart Material Detective",
+      college: COLLEGE_NAME,
+      department: DEPARTMENT,
+      studentClass: state.studentClass || "",
+      prn: state.prn || "",
+      name: state.studentName || "Anonymous",
+      score: totalScore, max: totalMax, percent: pct,
+      details: state.roundScores.map(r => `${r.name}: ${r.score}/${r.max}`).join(" | "),
+    }).then(res => {
+      if (res.sent) {
+        statusEl.textContent = "\u2713 Result sent to your instructor";
+        statusEl.className = "submit-status ok";
+      } else {
+        statusEl.textContent = "\u26A0 Couldn't reach the results sheet \u2014 your instructor may not see this attempt";
+        statusEl.className = "submit-status warn";
+      }
+    });
+  }
+
+  const grid = wrap.querySelector(".final-rounds");
+  state.roundScores.forEach(r => {
+    const card = el(`<div class="final-round-card">
+      <div class="rname">${r.name}</div>
+      <div class="rscore">${r.score}/${r.max}</div>
+    </div>`);
+    grid.appendChild(card);
+  });
+
+  wrap.querySelector("#restartBtn").addEventListener("click", () => {
+    state = { screen: "start", roundIndex: 0, answers: {}, roundScores: [], studentName: state.studentName, studentClass: state.studentClass, prn: state.prn };
+    render();
+  });
+
+  return wrap;
+}
+
+render();
+</script>
+</body>
+</html>

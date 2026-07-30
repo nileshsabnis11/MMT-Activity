@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--graphite);font-family:'Inter',sans-serif;min-height:100vh;padding:40px 16px;}
+.wrap{max-width:620px;margin:0 auto;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin-bottom:10px;}
+h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(24px,4vw,34px);margin-bottom:8px;}
+.sub{color:#B0C4CC;font-size:15px;margin-bottom:28px;}
+.panel{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.18);margin-bottom:18px;}
+.panel h2{font-family:'Fraunces',serif;font-size:18px;color:var(--ink);margin-bottom:16px;}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+input[type=text],input[type=password]{width:100%;padding:12px 14px;border:1.5px solid #d8d4cc;border-radius:10px;font-family:inherit;font-size:15px;color:var(--ink);margin-bottom:14px;}
+input:focus{outline:none;border-color:var(--copper);}
+.btn{background:var(--copper);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:filter .15s;}
+.btn:hover{filter:brightness(1.05);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--copper);border:1.5px solid var(--copper);}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid #eee;}
+.row:last-child{border-bottom:none;}
+.row-title{font-weight:600;color:var(--ink);font-size:15px;}
+.row-file{font-size:12px;color:var(--muted);margin-top:2px;}
+.switch{position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:#c7c2ba;border-radius:28px;transition:.2s;}
+.slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+.switch input:checked + .slider{background:var(--green);}
+.switch input:checked + .slider:before{transform:translateX(24px);}
+.actions{margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.msg{font-size:13px;font-weight:600;}
+.msg.ok{color:var(--green);}
+.msg.err{color:#C0392B;}
+.hidden{display:none;}
+#gate .panel{max-width:380px;margin:60px auto 0;}
+.loading{color:var(--muted);font-size:14px;padding:10px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Instructor Only</p>
+  <h1>Control Panel</h1>
+  <p class="sub">Show, hide, and register classroom activities.</p>
+
+  <!-- PASSWORD GATE -->
+  <div id="gate">
+    <div class="panel">
+      <h2>Enter Password</h2>
+      <input type="password" id="pw" placeholder="Password" autocomplete="off">
+      <button class="btn" id="unlockBtn">Unlock</button>
+      <p class="msg err hidden" id="gateMsg">Incorrect password.</p>
+    </div>
+  </div>
+
+  <!-- MAIN PANEL -->
+  <div id="main" class="hidden">
+    <div class="panel">
+      <h2>Activities</h2>
+      <div id="list"><p class="loading">Loading&hellip;</p></div>
+      <div class="actions">
+        <button class="btn" id="saveBtn">Save Changes</button>
+        <button class="btn btn-ghost" id="reloadBtn">Reload</button>
+        <span class="msg" id="saveMsg"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Add New Activity</h2>
+      <label for="actName">Activity name</label>
+      <input type="text" id="actName" placeholder="e.g. Phase Diagram Challenge">
+      <label for="actFile">File name</label>
+      <input type="text" id="actFile" placeholder="e.g. act1.html">
+      <div class="actions">
+        <button class="btn" id="addBtn">Add Activity</button>
+        <span class="msg" id="addMsg"></span>
+      </div>
+      <p class="row-file" style="margin-top:10px;">New activities start hidden (OFF). Flip the switch above and Save to reveal.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ SETTINGS ============
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+var PASSWORD   = "mmt2026";   // change this to your own password
+
+var activities = [];
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function $(id){ return document.getElementById(id); }
+
+// ---------- Password gate ----------
+function tryUnlock(){
+  if($("pw").value === PASSWORD){
+    $("gate").classList.add("hidden");
+    $("main").classList.remove("hidden");
+    loadConfig();
+  } else {
+    $("gateMsg").classList.remove("hidden");
+  }
+}
+$("unlockBtn").addEventListener("click", tryUnlock);
+$("pw").addEventListener("keydown", function(e){ if(e.key === "Enter") tryUnlock(); });
+
+// ---------- Render toggles ----------
+function renderList(){
+  var box = $("list");
+  if(!activities.length){
+    box.innerHTML = '<p class="loading">No activities registered yet. Add one below.</p>';
+    return;
+  }
+  var html = "";
+  activities.forEach(function(a, i){
+    html += '<div class="row">' +
+              '<div>' +
+                '<div class="row-title">' + esc(a.name || a.file) + '</div>' +
+                '<div class="row-file">' + esc(a.file) + '</div>' +
+              '</div>' +
+              '<label class="switch">' +
+                '<input type="checkbox" data-i="' + i + '"' + (a.visible ? ' checked' : '') + '>' +
+                '<span class="slider"></span>' +
+              '</label>' +
+            '</div>';
+  });
+  box.innerHTML = html;
+  Array.prototype.forEach.call(box.querySelectorAll('input[type=checkbox]'), function(cb){
+    cb.addEventListener("change", function(){
+      activities[+cb.getAttribute("data-i")].visible = cb.checked;
+    });
+  });
+}
+
+// ---------- Load config ----------
+function loadConfig(){
+  $("list").innerHTML = '<p class="loading">Loading&hellip;</p>';
+  fetch(SCRIPT_URL + "?action=getConfig")
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      activities = (data && data.activities) ? data.activities : [];
+      renderList();
+    })
+    .catch(function(){
+      $("list").innerHTML = '<p class="msg err">Could not reach the backend. Check the URL and try Reload.</p>';
+    });
+}
+
+// ---------- Save toggles ----------
+function saveChanges(){
+  var btn = $("saveBtn"), msg = $("saveMsg");
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
+  var states = activities.map(function(a){ return { file: a.file, visible: !!a.visible }; });
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "saveConfig", states: states })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    btn.disabled = false;
+    if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Saved ✓"; }
+    else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Save failed."; }
+  })
+  .catch(function(){
+    btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error.";
+  });
+}
+
+// ---------- Add activity ----------
+function addActivity(){
+  var name = $("actName").value.trim();
+  var file = $("actFile").value.trim();
+  var btn = $("addBtn"), msg = $("addMsg");
+
+  if(!name || !file){ msg.className = "msg err"; msg.textContent = "Name and file are required."; return; }
+  if(!/\.html?$/i.test(file)){ msg.className = "msg err"; msg.textContent = "File should end in .html"; return; }
+
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Adding…";
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "addActivity", name: name, file: file })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    btn.disabled = false;
+    if(res && res.status === "success"){
+      msg.className = "msg ok"; msg.textContent = "Added ✓";
+      $("actName").value = ""; $("actFile").value = "";
+      loadConfig();
+    } else {
+      msg.className = "msg err"; msg.textContent = (res && res.message) || "Add failed.";
+    }
+  })
+  .catch(function(){
+    btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error.";
+  });
+}
+
+$("saveBtn").addEventListener("click", saveChanges);
+$("reloadBtn").addEventListener("click", loadConfig);
+$("addBtn").addEventListener("click", addActivity);
+</script>
+</body>
+</html>

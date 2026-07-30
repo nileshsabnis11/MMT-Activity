@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activities Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--graphite);font-family:'Inter',sans-serif;min-height:100vh;padding:40px 16px;}
+.wrap{max-width:700px;margin:0 auto;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin-bottom:10px;}
+h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(26px,4vw,38px);margin-bottom:8px;}
+.sub{color:#B0C4CC;font-size:15px;margin-bottom:32px;}
+.card{background:#fff;border-radius:16px;padding:20px 24px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;text-decoration:none;color:var(--ink);box-shadow:0 4px 20px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;cursor:pointer;}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.card-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--ink);}
+.card-meta{font-size:13px;color:var(--muted);margin-top:3px;}
+.card-arrow{font-size:22px;color:var(--copper);flex-shrink:0;}
+.dashboard-card{background:var(--copper);}
+.dashboard-card .card-title,.dashboard-card .card-meta,.dashboard-card .card-arrow{color:var(--graphite);}
+.status{color:#8FA6AE;font-size:13px;text-align:center;padding:14px;}
+.empty{color:#B0C4CC;background:rgba(255,255,255,.05);border:1px dashed #3E5C67;border-radius:14px;padding:26px;text-align:center;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Interactive Classroom</p>
+  <h1>Activities Hub</h1>
+  <p class="sub">Select an activity below to begin.</p>
+
+  <a class="card dashboard-card" href="dashboard.html" target="_blank">
+    <div class="card-info">
+      <div class="card-title">Instructor Dashboard</div>
+      <div class="card-meta">Live analytics - All student results</div>
+    </div>
+    <div class="card-arrow">&rarr;</div>
+  </a>
+
+  <div id="activityList">
+    <p class="status">Loading activities&hellip;</p>
+  </div>
+</div>
+
+<script>
+// ============ BACKEND URL ============
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+
+// ============ FALLBACK (shown if backend is slow/offline) ============
+// Only files that actually exist should live here.
+var FALLBACK = [
+  { name: "Build-a-Robot: Material Selection", file: "build-a-robot.html", meta: "Type A - Selection Challenge" },
+  { name: "Smart Material Detective", file: "smart-material-detective.html", meta: "Type B - Detective Quiz" },
+  { name: "Sort & Classify: Metal Alloys", file: "sort-classify.html", meta: "Type C - Sort & Classify" },
+  { name: "Structure & Property Connection Match", file: "structure-property-match.html", meta: "Type F - Connection Match" },
+  { name: "Material Myths: Myth Buster", file: "myth-buster.html", meta: "Type E - Myth Buster" }
+];
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function renderCards(list){
+  var box = document.getElementById("activityList");
+  if(!list || !list.length){
+    box.innerHTML = '<div class="empty">No activities are open right now. Check back shortly.</div>';
+    return;
+  }
+  var html = "";
+  list.forEach(function(a){
+    if(!a.file) return;
+    var meta = a.meta ? '<div class="card-meta">' + esc(a.meta) + '</div>' : '';
+    html += '<a class="card" href="' + esc(a.file) + '">' +
+              '<div class="card-info">' +
+                '<div class="card-title">' + esc(a.name || a.file) + '</div>' +
+                meta +
+              '</div>' +
+              '<div class="card-arrow">&rarr;</div>' +
+            '</a>';
+  });
+  box.innerHTML = html;
+}
+
+function loadConfig(){
+  fetch(SCRIPT_URL + "?action=getConfig")
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var acts = (data && data.activities) ? data.activities : [];
+      var visible = acts.filter(function(a){ return a.visible && a.file; });
+      // If config tab exists (any rows), trust it — even if empty (all hidden).
+      if(acts.length){
+        renderCards(visible);
+      } else {
+        renderCards(FALLBACK);
+      }
+    })
+    .catch(function(){
+      // Backend unreachable → show fallback so the hub is never blank.
+      renderCards(FALLBACK);
+    });
+}
+
+loadConfig();
+</script>
+</body>
+</html>
