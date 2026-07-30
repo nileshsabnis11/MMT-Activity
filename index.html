@@ -86,12 +86,9 @@ function loadConfig(){
     .then(function(data){
       var acts = (data && data.activities) ? data.activities : [];
       var visible = acts.filter(function(a){ return a.visible && a.file; });
-      // If config tab exists (any rows), trust it — even if empty (all hidden).
-      if(acts.length){
-        renderCards(visible);
-      } else {
-        renderCards(FALLBACK);
-      }
+      // Trust the sheet: a successful response (even empty/all-hidden)
+      // shows the real state. FALLBACK only fires on a network error (catch).
+      renderCards(visible);
     })
     .catch(function(){
       // Backend unreachable → show fallback so the hub is never blank.
