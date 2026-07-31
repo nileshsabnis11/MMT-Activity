@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Material Selection Challenge - Robotics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --graphite: #1C2B33;
+    --graphite2: #142027;
+    --steel: #3E5C67;
+    --steel-light: #E3EAEC;
+    --copper: #D98E3B;
+    --copper-light: #F6E4C8;
+    --robot-blue: #2A5C7A;
+    --robot-blue-light: #DCEAF1;
+    --ink: #23343C;
+    --muted: #5C7079;
+    --card: #F4F2EE;
+    --white: #FFFFFF;
+    --good: #3E7A52;
+    --good-bg: #E7F3EA;
+    --warn: #9A6B1E;
+    --warn-bg: #FBF0DC;
+    --bad: #A23B3B;
+    --bad-bg: #FBEAEA;
+  }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    background-color: var(--graphite);
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .app-container {
+    background-color: var(--white);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    width: 100%;
+    max-width: 700px;
+    padding: 32px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Fraunces', serif;
+    margin-top: 0;
+  }
+
+  .eyebrow {
+    text-transform: uppercase;
+    color: var(--copper);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* Student Gate */
+  .name-gate {
+    background-color: var(--robot-blue-light);
+    padding: 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+
+  .name-gate input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--steel-light);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .btn-primary {
+    background-color: var(--copper);
+    color: var(--white);
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.2s;
+  }
+
+  .btn-primary:disabled {
+    background-color: var(--muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary:not(:disabled):hover {
+    opacity: 0.9;
+  }
+
+  /* Task UI */
+  .progress-pill {
+    display: inline-block;
+    background-color: var(--robot-blue-light);
+    color: var(--robot-blue);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .component-block {
+    background-color: var(--card);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  .component-title {
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    background-color: var(--white);
+    border: 1.5px solid var(--steel-light);
+    color: var(--steel);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .chip:hover {
+    border-color: var(--steel);
+  }
+
+  .chip.selected {
+    background-color: var(--robot-blue);
+    border-color: var(--robot-blue);
+    color: var(--white);
+  }
+
+  /* Results UI */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--graphite);
+    color: var(--white);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 auto 24px auto;
+  }
+
+  .result-card {
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border-left: 6px solid transparent;
+  }
+
+  .result-card.good {
+    background-color: var(--good-bg);
+    border-left-color: var(--good);
+  }
+
+  .result-card.warn {
+    background-color: var(--warn-bg);
+    border-left-color: var(--warn);
+  }
+
+  .result-card.bad {
+    background-color: var(--bad-bg);
+    border-left-color: var(--bad);
+  }
+
+  .result-header {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  
+  .result-reason {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .submit-status {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .submit-status.ok { color: var(--good); }
+  .submit-status.warn { color: var(--warn); }
+
+  @media (max-width: 700px) {
+    .app-container {
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- START SCREEN -->
+  <div id="screen-start">
+    <div class="eyebrow">Materials Science for Robotics</div>
+    <h1>Non-Metallic Material Selection</h1>
+    <p>Welcome, Engineer. Your task is to select the optimal elastomers, engineering plastics, and FRP composites for three different robotic systems based on their environmental and structural demands.</p>
+    
+    <div class="name-gate">
+      <input type="text" id="studentName" placeholder="Full Name" required>
+      <input type="text" id="studentClass" placeholder="Class / Division" required>
+      <input type="text" id="studentPrn" placeholder="PRN / Roll No." required>
+    </div>
+    
+    <button class="btn-primary" id="btn-start" disabled>Start Challenge</button>
+  </div>
+
+  <!-- TASK SCREEN -->
+  <div id="screen-task" class="hidden">
+    <div class="eyebrow" id="task-eyebrow">Mission 1 of 3</div>
+    <h2 id="task-title">Drone Assembly</h2>
+    <p id="task-brief" style="margin-bottom: 24px; color: var(--muted);"></p>
+    
+    <div class="progress-pill" id="task-progress">0 / 3 selected</div>
+    
+    <div id="components-container"></div>
+    
+    <button class="btn-primary" id="btn-submit-task" disabled>Submit Selections</button>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="hidden">
+    <div class="eyebrow">Mission Complete</div>
+    <h2>Diagnostic Report</h2>
+    
+    <div style="text-align: center;">
+      <div class="score-badge" id="round-score-badge">100%</div>
+    </div>
+    
+    <div id="results-container"></div>
+    <div class="submit-status" id="submitStatus">Sending result to your instructor…</div>
+    
+    <button class="btn-primary" id="btn-next-mission" style="margin-top: 24px;">Next Mission</button>
+  </div>
+
+  <!-- FINAL SCREEN -->
+  <div id="screen-final" class="hidden">
+    <div class="eyebrow">Challenge Complete</div>
+    <h2>Final Performance</h2>
+    
+    <div style="text-align: center;">
+      <div class="score-badge" id="final-score-badge" style="width:120px; height:120px; font-size:32px;">100%</div>
+    </div>
+    
+    <div id="final-breakdown" style="margin-bottom: 32px;"></div>
+    <button class="btn-primary" onclick="location.reload()">Play Again</button>
+  </div>
+
+  <!-- REQUIRED COPYRIGHT FOOTER -->
+  <div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;margin-top:24px;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
+</div>
+
+<script>
+  // Webhook & College Data (Strictly Embedded)
+  const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+  const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+  const DEPARTMENT   = "Robotics and Automation";
+
+  // Data Model for Type A (Selection Challenge)
+  const MATERIALS = {
+    cfrp: { name: "CFRP (Carbon Fibre)" },
+    polycarbonate: { name: "Polycarbonate" },
+    silicone: { name: "Silicone" },
+    delrin: { name: "Nylon/POM (Delrin)" },
+    neoprene: { name: "Neoprene" },
+    polybutadiene: { name: "Polybutadiene" },
+    peek: { name: "PEEK" },
+    natural: { name: "Natural Rubber" }
+  };
+
+  const MISSIONS = [
+    {
+      name: "Mobile Recon Drone",
+      tag: "Mission 1",
+      brief: "This drone requires extreme weight reduction for flight, tough covers for its optical sensors, and damping for its sensitive payload.",
+      components: [
+        {
+          key: "frame", label: "Structural Frame",
+          ideal: "cfrp", acceptable: ["polycarbonate"],
+          reason: "CFRP (FRP Composite) provides aerospace-level stiffness at a fraction of aluminum's weight, perfect for drone frames."
+        },
+        {
+          key: "sensor", label: "Sensor Housing",
+          ideal: "polycarbonate", acceptable: ["peek"],
+          reason: "Polycarbonate (Engineering Plastic) is tough, impact-resistant, and transparent for optical sensors."
+        },
+        {
+          key: "mount", label: "Camera Vibration Mounts",
+          ideal: "silicone", acceptable: ["natural", "neoprene"],
+          reason: "Silicone (Elastomer) absorbs high-frequency shock and vibration that rigid frames would transmit straight to the camera."
+        }
+      ]
+    },
+    {
+      name: "Warehouse Delivery Bot",
+      tag: "Mission 2",
+      brief: "This ground robot drives continuously across rough warehouse floors and relies on complex internal gearing for precise steering.",
+      components: [
+        {
+          key: "treads", label: "Wheel Treads",
+          ideal: "polybutadiene", acceptable: ["natural", "neoprene"],
+          reason: "Polybutadiene (Elastomer) provides outstanding wear resistance under continuous rolling contact on harsh surfaces."
+        },
+        {
+          key: "gears", label: "Internal Steering Gears",
+          ideal: "delrin", acceptable: ["peek"],
+          reason: "Nylon/POM Delrin (Engineering Plastic) replaces metal here because it offers low friction, low wear, and is self-lubricating."
+        },
+        {
+          key: "wiring", label: "Motor Wire Insulation",
+          ideal: "neoprene", acceptable: ["silicone"],
+          reason: "Neoprene (Elastomer) provides excellent heat resistance, easy elongation, and good electrical insulation for internal wiring."
+        }
+      ]
+    },
+    {
+      name: "Surgical Manipulator Arm",
+      tag: "Mission 3",
+      brief: "Operating in medical environments, this arm must withstand harsh chemical sterilization and high heat without degrading.",
+      components: [
+        {
+          key: "tools", label: "Sterilizable End-Effector Bearings",
+          ideal: "peek", acceptable: ["delrin"],
+          reason: "PEEK (Engineering Plastic) survives extreme sterilization heat and chemicals that would melt common plastics."
+        },
+        {
+          key: "seals", label: "Internal Fluid Seals",
+          ideal: "silicone", acceptable: ["neoprene"],
+          reason: "Silicone (Elastomer) is biocompatible and offers superior chemical and thermal resistance for medical sealing."
+        },
+        {
+          key: "panels", label: "Outer Protective Shell",
+          ideal: "cfrp", acceptable: ["polycarbonate"],
+          reason: "Composites provide a lightweight, structurally rigid shell that is immune to corrosion from medical cleaning agents."
+        }
+      ]
+    }
+  ];
+
+  // App State
+  let state = {
+    screen: "start",
+    missionIndex: 0,
+    choices: {},
+    studentName: "",
+    cls: "",
+    prn: "",
+    missionScores: [],
+    cumulativeScore: 0,
+    maxPossibleScore: 0
+  };
+
+  // DOM Elements
+  const els = {
+    screenStart: document.getElementById('screen-start'),
+    screenTask: document.getElementById('screen-task'),
+    screenResults: document.getElementById('screen-results'),
+    screenFinal: document.getElementById('screen-final'),
+    
+    btnStart: document.getElementById('btn-start'),
+    btnSubmitTask: document.getElementById('btn-submit-task'),
+    btnNextMission: document.getElementById('btn-next-mission'),
+    
+    inName: document.getElementById('studentName'),
+    inClass: document.getElementById('studentClass'),
+    inPrn: document.getElementById('studentPrn'),
+    
+    taskEyebrow: document.getElementById('task-eyebrow'),
+    taskTitle: document.getElementById('task-title'),
+    taskBrief: document.getElementById('task-brief'),
+    taskProgress: document.getElementById('task-progress'),
+    componentsContainer: document.getElementById('components-container'),
+    
+    roundScoreBadge: document.getElementById('round-score-badge'),
+    resultsContainer: document.getElementById('results-container'),
+    submitStatus: document.getElementById('submitStatus'),
+    
+    finalScoreBadge: document.getElementById('final-score-badge'),
+    finalBreakdown: document.getElementById('final-breakdown')
+  };
+
+  // --- Logic ---
+
+  function validateGate() {
+    state.studentName = els.inName.value.trim();
+    state.cls = els.inClass.value.trim();
+    state.prn = els.inPrn.value.trim();
+    els.btnStart.disabled = !(state.studentName && state.cls && state.prn);
+  }
+
+  els.inName.addEventListener('input', validateGate);
+  els.inClass.addEventListener('input', validateGate);
+  els.inPrn.addEventListener('input', validateGate);
+
+  els.btnStart.addEventListener('click', () => {
+    switchScreen(els.screenTask);
+    loadMission();
+  });
+
+  function switchScreen(activeScreen) {
+    [els.screenStart, els.screenTask, els.screenResults, els.screenFinal].forEach(s => s.classList.add('hidden'));
+    activeScreen.classList.remove('hidden');
+  }
+
+  function loadMission() {
+    const mission = MISSIONS[state.missionIndex];
+    state.choices = {};
+    
+    els.taskEyebrow.textContent = `Mission ${state.missionIndex + 1} of ${MISSIONS.length}`;
+    els.taskTitle.textContent = mission.name;
+    els.taskBrief.textContent = mission.brief;
+    updateProgress();
+    
+    els.componentsContainer.innerHTML = "";
+    
+    mission.components.forEach((comp, idx) => {
+      const block = document.createElement('div');
+      block.className = 'component-block';
+      
+      const title = document.createElement('div');
+      title.className = 'component-title';
+      title.textContent = `${idx + 1}. ${comp.label}`;
+      block.appendChild(title);
+      
+      const chips = document.createElement('div');
+      chips.className = 'chip-group';
+      
+      // Shuffle materials for display
+      const matKeys = Object.keys(MATERIALS).sort(() => 0.5 - Math.random());
+      
+      matKeys.forEach(matKey => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = MATERIALS[matKey].name;
+        chip.onclick = () => selectMaterial(comp.key, matKey, chip, chips);
+        chips.appendChild(chip);
+      });
+      
+      block.appendChild(chips);
+      els.componentsContainer.appendChild(block);
+    });
+  }
+
+  function selectMaterial(compKey, matKey, clickedChip, chipContainer) {
+    Array.from(chipContainer.children).forEach(c => c.classList.remove('selected'));
+    clickedChip.classList.add('selected');
+    state.choices[compKey] = matKey;
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const mission = MISSIONS[state.missionIndex];
+    const answered = Object.keys(state.choices).length;
+    const total = mission.components.length;
+    els.taskProgress.textContent = `${answered} / ${total} selected`;
+    els.btnSubmitTask.disabled = answered < total;
+  }
+
+  els.btnSubmitTask.addEventListener('click', () => {
+    evaluateMission();
+  });
+
+  function evaluateMission() {
+    const mission = MISSIONS[state.missionIndex];
+    let roundScore = 0;
+    const roundMax = mission.components.length * 20;
+    
+    els.resultsContainer.innerHTML = "";
+    let summaryText = "";
+
+    mission.components.forEach(comp => {
+      const choice = state.choices[comp.key];
+      let points = 0;
+      let statusClass = "bad";
+      let statusText = "Incorrect";
+      
+      if (choice === comp.ideal) {
+        points = 20;
+        statusClass = "good";
+        statusText = "Ideal Selection (20 pts)";
+      } else if (comp.acceptable.includes(choice)) {
+        points = 12;
+        statusClass = "warn";
+        statusText = "Acceptable Alternative (12 pts)";
+      }
+      
+      roundScore += points;
+      
+      summaryText += `[${comp.label}: chose ${MATERIALS[choice].name} -> ${points}pts] `;
+
+      const card = document.createElement('div');
+      card.className = `result-card ${statusClass}`;
+      card.innerHTML = `
+        <div class="result-header">${comp.label}: ${MATERIALS[choice].name}</div>
+        <div style="font-weight:600; margin-bottom:8px; font-size:14px;">${statusText}</div>
+        <div class="result-reason"><strong>Why:</strong> ${comp.reason}</div>
+      `;
+      els.resultsContainer.appendChild(card);
+    });
+
+    state.missionScores.push(roundScore);
+    state.cumulativeScore += roundScore;
+    state.maxPossibleScore += roundMax;
+    
+    const pct = Math.round((roundScore / roundMax) * 100);
+    els.roundScoreBadge.textContent = `${pct}%`;
+
+    // Handle payload submission
+    const payload = {
+      game: "Non-Metallic Material Selection",
+      type: "Type A",
+      college: COLLEGE_NAME,
+      department: DEPARTMENT,
+      name: state.studentName,
+      studentClass: state.cls,
+      prn: state.prn,
+      round: mission.name,
+      roundNumber: state.missionIndex + 1,
+      score: roundScore,
+      max: roundMax,
+      percent: pct,
+      details: summaryText
+    };
+    
+    els.submitStatus.className = "submit-status";
+    els.submitStatus.textContent = "Sending result to your instructor…";
+    
+    submitResult(payload).then(res => {
+      if (res.sent) {
+        els.submitStatus.className = "submit-status ok";
+        els.submitStatus.textContent = "✓ Result sent to your instructor";
+      } else {
+        els.submitStatus.className = "submit-status warn";
+        els.submitStatus.textContent = "⚠ Couldn't reach the results sheet (Network Error)";
+      }
+    });
+
+    if (state.missionIndex === MISSIONS.length - 1) {
+      els.btnNextMission.textContent = "View Final Results";
+    }
+
+    switchScreen(els.screenResults);
+  }
+
+  els.btnNextMission.addEventListener('click', () => {
+    state.missionIndex++;
+    if (state.missionIndex < MISSIONS.length) {
+      loadMission();
+      switchScreen(els.screenTask);
+    } else {
+      showFinalScreen();
+    }
+  });
+
+  function showFinalScreen() {
+    const finalPct = Math.round((state.cumulativeScore / state.maxPossibleScore) * 100);
+    els.finalScoreBadge.textContent = `${finalPct}%`;
+    
+    els.finalBreakdown.innerHTML = "";
+    MISSIONS.forEach((m, i) => {
+      const mScore = state.missionScores[i];
+      const mMax = m.components.length * 20;
+      
+      const div = document.createElement('div');
+      div.style.padding = "12px";
+      div.style.backgroundColor = "var(--card)";
+      div.style.marginBottom = "8px";
+      div.style.borderRadius = "8px";
+      div.style.display = "flex";
+      div.style.justifyContent = "space-between";
+      div.innerHTML = `<strong>${m.name}</strong> <span>${mScore} / ${mMax} pts</span>`;
+      els.finalBreakdown.appendChild(div);
+    });
+
+    switchScreen(els.screenFinal);
+  }
+
+  // Universal Submission Logic
+  function submitResult(payload) {
+    if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
+    return fetch(SHEET_WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+  }
+
+</script>
+</body>
+</html>
