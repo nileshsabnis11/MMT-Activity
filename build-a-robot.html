@@ -35,7 +35,8 @@
     font-family:'Inter',sans-serif;
     min-height:100vh;
     display:flex;
-    justify-content:center;
+    flex-direction:column;
+    align-items:center;
     padding:28px 16px 60px;
   }
   .app{
@@ -273,7 +274,7 @@
   <div class="top">
     <p class="eyebrow">Materials Science for Robotics &middot; Interactive Activity</p>
     <h1>Build-a-Robot: Material Selection Challenge</h1>
-    <p>Every robot below needs five decisions made \u2014 the same decisions real robotics engineers make every day. Use only what we covered today: magnesium alloys, the three steel strength grades, FRP composites, and piezoelectric sensors.</p>
+    <p>Every robot below needs five decisions made — the same decisions real robotics engineers make every day. Use only what we covered today: magnesium alloys, the three steel strength grades, FRP composites, and piezoelectric sensors.</p>
   </div>
 
   <div class="panel" id="panel"></div>
@@ -304,33 +305,33 @@ function submitResult(payload) {
 }
 
 const MATERIALS = {
-  mg:   { name:"Magnesium Alloy (AZ91E)", tag:"Lightest metal \u00B7 corrosion risk", role:"structural",
-          blurb:"the lightest structural metal available, with great machinability \u2014 but it's corrosion-prone and pricier to work with." },
-  hss:  { name:"High Strength Steel", tag:"500\u2013700 MPa \u00B7 reliable default", role:"structural",
-          blurb:"the reliable, cost-effective default \u2014 500\u2013700 MPa tensile strength, built for arms, linkages, and grippers." },
-  ahss: { name:"Advanced High Strength Steel", tag:"700\u20131200 MPa \u00B7 protective", role:"structural",
-          blurb:"700\u20131200 MPa tensile strength, purpose-built for protective structures, casings, and exoskeletons." },
-  uhss: { name:"Ultra High Strength Steel", tag:"1200\u20132000 MPa \u00B7 wear-resistant", role:"structural",
-          blurb:"1200\u20132000 MPa tensile strength with superior wear resistance \u2014 built for gears and load-bearing joints, but it's heavy." },
+  mg:   { name:"Magnesium Alloy (AZ91E)", tag:"Lightest metal · corrosion risk", role:"structural",
+          blurb:"the lightest structural metal available, with great machinability — but it's corrosion-prone and pricier to work with." },
+  hss:  { name:"High Strength Steel", tag:"500–700 MPa · reliable default", role:"structural",
+          blurb:"the reliable, cost-effective default — 500–700 MPa tensile strength, built for arms, linkages, and grippers." },
+  ahss: { name:"Advanced High Strength Steel", tag:"700–1200 MPa · protective", role:"structural",
+          blurb:"700–1200 MPa tensile strength, purpose-built for protective structures, casings, and exoskeletons." },
+  uhss: { name:"Ultra High Strength Steel", tag:"1200–2000 MPa · wear-resistant", role:"structural",
+          blurb:"1200–2000 MPa tensile strength with superior wear resistance — built for gears and load-bearing joints, but it's heavy." },
   frp:  { name:"FRP Composite (CFRP/GFRP)", tag:"~1/5th density of steel", role:"structural",
-          blurb:"about 1/5th the density of steel, corrosion- and UV-resistant \u2014 but it weakens above 60\u00B0C and can't be recycled." },
+          blurb:"about 1/5th the density of steel, corrosion- and UV-resistant — but it weakens above 60°C and can't be recycled." },
   piezo:{ name:"Piezoelectric Material (PVDF/PZT)", tag:"Senses, doesn't bear load", role:"sensor",
-          blurb:"converts mechanical stress directly into an electrical signal \u2014 it senses force or vibration, but it cannot bear structural load." },
+          blurb:"converts mechanical stress directly into an electrical signal — it senses force or vibration, but it cannot bear structural load." },
 };
 const MAT_KEYS = ["mg","hss","ahss","uhss","frp","piezo"];
 
 const MISSIONS = [
   {
     name: "Warehouse AGV",
-    tag: "Ground \u00B7 Indoor \u00B7 Cost-Sensitive",
-    brief: "A ground vehicle that shuttles pallets around a warehouse floor all day. Battery life and payload capacity both matter \u2014 but it never leaves a dry, indoor building.",
+    tag: "Ground · Indoor · Cost-Sensitive",
+    brief: "A ground vehicle that shuttles pallets around a warehouse floor all day. Battery life and payload capacity both matter — but it never leaves a dry, indoor building.",
     components: [
       { key:"chassis", label:"Chassis / Frame", ideal:"frp", acceptable:["mg"],
-        reason:"Every gram saved here becomes battery life or payload capacity \u2014 and indoors, there's no harsh corrosion to worry about." },
+        reason:"Every gram saved here becomes battery life or payload capacity — and indoors, there's no harsh corrosion to worry about." },
       { key:"arm", label:"Lifting Arm / Linkage", ideal:"hss", acceptable:["ahss"],
-        reason:"This is the textbook use case for High Strength Steel \u2014 proven and cost-effective for arms and linkages." },
+        reason:"This is the textbook use case for High Strength Steel — proven and cost-effective for arms and linkages." },
       { key:"gripper", label:"Pallet Gripper", ideal:"uhss", acceptable:["hss"],
-        reason:"Material-handling grippers clamp heavy loads over and over \u2014 Ultra High Strength Steel's wear resistance earns its keep here." },
+        reason:"Material-handling grippers clamp heavy loads over and over — Ultra High Strength Steel's wear resistance earns its keep here." },
       { key:"axle", label:"Load-Bearing Wheel Axle", ideal:"uhss", acceptable:["ahss"],
         reason:"A constantly loaded, constantly rotating axle needs the highest wear resistance and load capacity on the table." },
       { key:"sensor", label:"Contact / Force Sensor", ideal:"piezo", acceptable:[],
@@ -339,24 +340,24 @@ const MISSIONS = [
   },
   {
     name: "Aerial Inspection Drone",
-    tag: "Flight \u00B7 Weight-Critical \u00B7 Vibration",
+    tag: "Flight · Weight-Critical · Vibration",
     brief: "A quadcopter that inspects power lines and pipelines from the air. Every gram of structural weight is stolen directly from flight time, and it must survive constant vibration.",
     components: [
       { key:"frame", label:"Frame / Body", ideal:"frp", acceptable:["mg"],
-        reason:"Flight time is won or lost by grams \u2014 FRP's extreme lightness beats every other structural option here." },
+        reason:"Flight time is won or lost by grams — FRP's extreme lightness beats every other structural option here." },
       { key:"arm", label:"Propeller Arm", ideal:"frp", acceptable:["mg"],
-        reason:"Propeller arms need to be stiff and light without adding rotational inertia \u2014 FRP is the standard answer." },
+        reason:"Propeller arms need to be stiff and light without adding rotational inertia — FRP is the standard answer." },
       { key:"housing", label:"Camera Gimbal Housing", ideal:"mg", acceptable:["frp"],
         reason:"Magnesium's thermal conductivity helps dissipate heat from the camera electronics while staying light." },
       { key:"casing", label:"Protective Casing", ideal:"mg", acceptable:["frp"],
-        reason:"It needs to survive a hard landing without blowing the weight budget \u2014 magnesium balances protection and mass better than steel." },
+        reason:"It needs to survive a hard landing without blowing the weight budget — magnesium balances protection and mass better than steel." },
       { key:"sensor", label:"Vibration Sensor", ideal:"piezo", acceptable:[],
         reason:"Piezoelectric accelerometers are the standard way to sense vibration and flight instability in real time." },
     ],
   },
   {
     name: "Surgical Assistant Robot",
-    tag: "Precision \u00B7 Human Contact \u00B7 Sterile",
+    tag: "Precision · Human Contact · Sterile",
     brief: "A precision robotic arm that assists a surgeon inside an operating room. It must be sterilizable, dependably precise, and extremely safe on contact with a person.",
     components: [
       { key:"arm", label:"Structural Arm", ideal:"hss", acceptable:["ahss"],
@@ -364,11 +365,11 @@ const MISSIONS = [
       { key:"gripper", label:"Precision Gripper", ideal:"hss", acceptable:["uhss"],
         reason:"A gripper handling delicate instruments needs dependable clamping strength without unnecessary bulk." },
       { key:"housing", label:"Protective Housing", ideal:"ahss", acceptable:["mg"],
-        reason:"Patient-facing housings need Advanced High Strength Steel's impact protection \u2014 not a place to gamble on a lighter, corrosion-prone metal." },
+        reason:"Patient-facing housings need Advanced High Strength Steel's impact protection — not a place to gamble on a lighter, corrosion-prone metal." },
       { key:"joint", label:"Load-Bearing Joint", ideal:"uhss", acceptable:["ahss"],
         reason:"A joint under constant, precise load benefits from Ultra High Strength Steel's superior wear resistance." },
       { key:"sensor", label:"Contact Force Sensor", ideal:"piezo", acceptable:[],
-        reason:"Safe human contact depends on sensing force in real time \u2014 exactly what a piezoelectric sensor is built for." },
+        reason:"Safe human contact depends on sensing force in real time — exactly what a piezoelectric sensor is built for." },
     ],
   },
 ];
@@ -422,7 +423,7 @@ function renderStart(){
   const grid = wrap.querySelector(".missions");
   MISSIONS.forEach((m, i) => {
     const card = el(`<div class="mission-card">
-      <div class="tag">Mission ${i+1} \u00b7 ${m.tag}</div>
+      <div class="tag">Mission ${i+1} · ${m.tag}</div>
       <h3>${m.name}</h3>
       <p>${m.brief}</p>
     </div>`);
@@ -558,7 +559,7 @@ function scoreMission(mission){
     let tier, pts, text;
     if (chosen === c.ideal){
       tier = "good"; pts = 20;
-      text = `Perfect choice \u2014 ${c.reason}`;
+      text = `Perfect choice — ${c.reason}`;
     } else if (c.acceptable.includes(chosen)){
       tier = "warn"; pts = 12;
       const idealMat = MATERIALS[c.ideal];
@@ -568,9 +569,9 @@ function scoreMission(mission){
       const idealMat = MATERIALS[c.ideal];
       let mismatch;
       if (mat.role === "sensor" && idealMat.role !== "sensor"){
-        mismatch = `A piezoelectric material senses force or vibration \u2014 it can't bear structural load. This slot needs ${idealMat.name}.`;
+        mismatch = `A piezoelectric material senses force or vibration — it can't bear structural load. This slot needs ${idealMat.name}.`;
       } else if (mat.role !== "sensor" && idealMat.role === "sensor"){
-        mismatch = `${mat.name} is a structural material \u2014 it can't generate an electrical signal from stress the way ${idealMat.name} does.`;
+        mismatch = `${mat.name} is a structural material — it can't generate an electrical signal from stress the way ${idealMat.name} does.`;
       } else {
         mismatch = `${mat.name} is ${mat.blurb} That's not the best fit here: ${c.reason}`;
       }
@@ -583,10 +584,10 @@ function scoreMission(mission){
 }
 
 function ratingFor(pct){
-  if (pct >= 90) return { title:"Flagship Design", emoji:"\uD83C\uDFC6" };
-  if (pct >= 70) return { title:"Field-Ready Prototype", emoji:"\u2705" };
-  if (pct >= 50) return { title:"Working Prototype", emoji:"\u26A0\uFE0F" };
-  return { title:"Back to the Drawing Board", emoji:"\uD83D\uDD27" };
+  if (pct >= 90) return { title:"Flagship Design", emoji:"🏆" };
+  if (pct >= 70) return { title:"Field-Ready Prototype", emoji:"✅" };
+  if (pct >= 50) return { title:"Working Prototype", emoji:"⚠️" };
+  return { title:"Back to the Drawing Board", emoji:"🔧" };
 }
 
 function renderResults(){
@@ -608,11 +609,11 @@ function renderResults(){
     <div class="results-actions">
       <button class="btn btn-primary" id="nextBtn">${isLastMission ? "See Final Results" : "Start Mission " + (state.missionIndex+2)}</button>
     </div>
-    <div class="submit-status" id="submitStatus">Sending your result to your instructor\u2026</div>
+    <div class="submit-status" id="submitStatus">Sending your result to your instructor…</div>
     <div class="legend">
-      <span><b>\u2705 Perfect</b> = 20 pts</span>
-      <span><b>\u26A0\uFE0F Acceptable alternative</b> = 12 pts</span>
-      <span><b>\u274C Reconsider</b> = 0 pts</span>
+      <span><b>✅ Perfect</b> = 20 pts</span>
+      <span><b>⚠️ Acceptable alternative</b> = 12 pts</span>
+      <span><b>❌ Reconsider</b> = 0 pts</span>
     </div>
   </div>`);
 
@@ -633,17 +634,17 @@ function renderResults(){
       details: results.map(r => `${r.label}: ${r.chosen} (${r.tier})`).join(" | "),
     }).then(res => {
       if (res.sent) {
-        statusEl.textContent = "\u2713 Result sent to your instructor";
+        statusEl.textContent = "✓ Result sent to your instructor";
         statusEl.className = "submit-status ok";
       } else {
-        statusEl.textContent = "\u26A0 Couldn't reach the results sheet \u2014 your instructor may not see this attempt";
+        statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
       }
     });
   }
 
   const list = wrap.querySelector(".results-list");
-  const icon = { good:"\u2705", warn:"\u26A0\uFE0F", bad:"\u274C" };
+  const icon = { good:"✅", warn:"⚠️", bad:"❌" };
   results.forEach(r => {
     const card = el(`<div class="result-card ${r.tier}">
       <div class="result-icon">${icon[r.tier]}</div>

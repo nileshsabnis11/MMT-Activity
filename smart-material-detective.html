@@ -33,7 +33,8 @@
     font-family:'Inter',sans-serif;
     min-height:100vh;
     display:flex;
-    justify-content:center;
+    flex-direction:column;
+    align-items:center;
     padding:28px 16px 60px;
   }
   .app{ width:100%; max-width:1180px; }
@@ -200,7 +201,7 @@
   <div class="top">
     <p class="eyebrow">Materials Science for Robotics &middot; Interactive Activity</p>
     <h1>Smart Material Detective</h1>
-    <p>Twenty clues. Three rounds. Every clue describes a real material or micro-device from today's lecture \u2014 figure out which one before your classmates do.</p>
+    <p>Twenty clues. Three rounds. Every clue describes a real material or micro-device from today's lecture — figure out which one before your classmates do.</p>
   </div>
   <div class="panel" id="panel"></div>
 </div>
@@ -233,24 +234,24 @@ const ROUNDS = [
   {
     name: "Field-Responsive Materials",
     tag: "Round 1",
-    intro: "Five materials that all react to something \u2014 heat, light, or a field. Tell them apart.",
+    intro: "Five materials that all react to something — heat, light, or a field. Tell them apart.",
     options: ["Shape Memory Alloy", "Chromoactive Material", "Magnetorheological Material", "Electrostrictive Material", "Magnetostrictive Material"],
     clues: [
-      { text: "Bend me while I'm cool, then warm me back up \u2014 I'll snap right back to my original shape.", answer: "Shape Memory Alloy",
-        why: "That heat-triggered shape recovery, via a martensite\u2192austenite phase change, is the signature of a Shape Memory Alloy like Nitinol." },
+      { text: "Bend me while I'm cool, then warm me back up — I'll snap right back to my original shape.", answer: "Shape Memory Alloy",
+        why: "That heat-triggered shape recovery, via a martensite→austenite phase change, is the signature of a Shape Memory Alloy like Nitinol." },
       { text: "I turn from liquid to near-solid in milliseconds the instant you switch on a magnetic field.", answer: "Magnetorheological Material",
-        why: "That instant, reversible fluid-to-near-solid change under a magnetic field is exactly what an MR fluid does \u2014 used in brakes, clutches, and shock absorbers." },
-      { text: "My colour shifts as the temperature around me changes \u2014 no battery required.", answer: "Chromoactive Material",
+        why: "That instant, reversible fluid-to-near-solid change under a magnetic field is exactly what an MR fluid does — used in brakes, clutches, and shock absorbers." },
+      { text: "My colour shifts as the temperature around me changes — no battery required.", answer: "Chromoactive Material",
         why: "A pure colour change with temperature, zero electronics involved, is the classic Chromoactive (thermochromic) behavior." },
-      { text: "Apply a voltage and I'll deform \u2014 but flip the polarity and I deform exactly the same way. No reversal.", answer: "Electrostrictive Material",
+      { text: "Apply a voltage and I'll deform — but flip the polarity and I deform exactly the same way. No reversal.", answer: "Electrostrictive Material",
         why: "That quadratic, polarity-independent deformation under an electric field is what separates Electrostrictive materials from piezoelectrics." },
       { text: "Put me in a magnetic field and I physically change size. Terfenol-D is my most famous example.", answer: "Magnetostrictive Material",
-        why: "Changing dimension \u2014 not stiffness \u2014 under a magnetic field, with Terfenol-D as the poster child, is Magnetostriction." },
+        why: "Changing dimension — not stiffness — under a magnetic field, with Terfenol-D as the poster child, is Magnetostriction." },
       { text: "I'm the reason a robot leg joint packed with the right fluid can go from soft to rigid in an instant.", answer: "Magnetorheological Material",
         why: "Instantly tunable joint stiffness on demand is the signature robotics use of MR fluid." },
-      { text: "Heat me past my transition temperature and I recover a shape I \u201Cremember\u201D \u2014 Nitinol is my most common form.", answer: "Shape Memory Alloy",
+      { text: "Heat me past my transition temperature and I recover a shape I “remember” — Nitinol is my most common form.", answer: "Shape Memory Alloy",
         why: "Nitinol (Nickel-Titanium) is the most widely used Shape Memory Alloy." },
-      { text: "I make an overheating motor housing change colour so you can spot trouble at a glance \u2014 zero power needed.", answer: "Chromoactive Material",
+      { text: "I make an overheating motor housing change colour so you can spot trouble at a glance — zero power needed.", answer: "Chromoactive Material",
         why: "A zero-power, glance-and-know visual warning is exactly the robotics use case for a Chromoactive coating." },
     ],
   },
@@ -260,35 +261,35 @@ const ROUNDS = [
     intro: "Seven families, one trigger: light. Same stimulus, seven completely different jobs.",
     options: ["Photopolymer", "Photoconductor", "Photosensitizer", "Photochromic Material", "Photovoltaic Material", "Photocatalyst", "Photoswitchable Molecule"],
     clues: [
-      { text: "Shine UV light on me and I harden \u2014 that's how a 3D printer builds an object layer by layer.", answer: "Photopolymer",
+      { text: "Shine UV light on me and I harden — that's how a 3D printer builds an object layer by layer.", answer: "Photopolymer",
         why: "Hardening (or softening) under UV light is the defining trait of a Photopolymer, used in 3D printing and photolithography." },
-      { text: "I become a better conductor of electricity the moment light hits me \u2014 you'll find me inside a photocopier.", answer: "Photoconductor",
+      { text: "I become a better conductor of electricity the moment light hits me — you'll find me inside a photocopier.", answer: "Photoconductor",
         why: "Increased electrical conductivity under light is the Photoconductor's job, used in photocopiers and light sensors." },
-      { text: "I trigger a chemical reaction in a nearby molecule when light hits me \u2014 doctors use me in cancer therapy.", answer: "Photosensitizer",
+      { text: "I trigger a chemical reaction in a nearby molecule when light hits me — doctors use me in cancer therapy.", answer: "Photosensitizer",
         why: "Producing a chemical change in another molecule under light is exactly what a Photosensitizer does in photodynamic therapy." },
-      { text: "My colour changes when light hits me \u2014 I'm the reason some sunglasses auto-tint outdoors.", answer: "Photochromic Material",
-        why: "A colour change triggered by light \u2014 not temperature \u2014 is the Photochromic material's signature." },
-      { text: "I convert sunlight directly into electricity \u2014 you'll find me covering a solar panel.", answer: "Photovoltaic Material",
-        why: "Direct light-to-electricity conversion is the Photovoltaic material's job \u2014 the heart of every solar cell." },
-      { text: "I speed up a chemical reaction when light hits me \u2014 I can make a surface clean itself or help split water into hydrogen.", answer: "Photocatalyst",
-        why: "Accelerating a reaction under light \u2014 self-cleaning surfaces, water splitting \u2014 is the Photocatalyst's role." },
-      { text: "Shine light on me and I flip between two stable structures \u2014 useful for optical data storage and molecular machines.", answer: "Photoswitchable Molecule",
+      { text: "My colour changes when light hits me — I'm the reason some sunglasses auto-tint outdoors.", answer: "Photochromic Material",
+        why: "A colour change triggered by light — not temperature — is the Photochromic material's signature." },
+      { text: "I convert sunlight directly into electricity — you'll find me covering a solar panel.", answer: "Photovoltaic Material",
+        why: "Direct light-to-electricity conversion is the Photovoltaic material's job — the heart of every solar cell." },
+      { text: "I speed up a chemical reaction when light hits me — I can make a surface clean itself or help split water into hydrogen.", answer: "Photocatalyst",
+        why: "Accelerating a reaction under light — self-cleaning surfaces, water splitting — is the Photocatalyst's role." },
+      { text: "Shine light on me and I flip between two stable structures — useful for optical data storage and molecular machines.", answer: "Photoswitchable Molecule",
         why: "Flipping between two stable states under light is exactly what a Photoswitchable Molecule does." },
     ],
   },
   {
     name: "Exotic & Micro Structures",
     tag: "Round 3",
-    intro: "Materials that break the usual rules \u2014 no fixed crystal structure, or barely any structure at all.",
+    intro: "Materials that break the usual rules — no fixed crystal structure, or barely any structure at all.",
     options: ["MEMS", "Metallic Glass", "Quasicrystalline Material", "Nanocrystalline Material"],
     clues: [
       { text: "I pack sensors, actuators, microstructures, and electronics onto a single chip a few micrometers across.", answer: "MEMS",
         why: "Combining all four of those on one tiny chip is the definition of a Micro-Electro-Mechanical System." },
-      { text: "My atoms are arranged in total disorder, like glass \u2014 yet I still conduct electricity and shine like a metal.", answer: "Metallic Glass",
+      { text: "My atoms are arranged in total disorder, like glass — yet I still conduct electricity and shine like a metal.", answer: "Metallic Glass",
         why: "A disordered, glass-like structure that still conducts electricity and has metallic luster is exactly Metallic Glass." },
-      { text: "My pattern is ordered, but it never quite repeats \u2014 and I make a fantastic non-stick coating.", answer: "Quasicrystalline Material",
+      { text: "My pattern is ordered, but it never quite repeats — and I make a fantastic non-stick coating.", answer: "Quasicrystalline Material",
         why: "Ordered but non-periodic is the definition of a quasicrystal, and non-stick coatings are one of its signature applications." },
-      { text: "My crystal grains are only a few nanometers wide \u2014 that makes me stronger and harder than my coarse-grained cousins, but also less dense.", answer: "Nanocrystalline Material",
+      { text: "My crystal grains are only a few nanometers wide — that makes me stronger and harder than my coarse-grained cousins, but also less dense.", answer: "Nanocrystalline Material",
         why: "Nanometer-scale grains driving up strength and hardness while density drops is classic Nanocrystalline behavior." },
       { text: "I'm the accelerometer-and-gyroscope pair inside every drone's flight controller.", answer: "MEMS",
         why: "The IMU (accelerometer + gyroscope) that gives drones their sense of orientation is a MEMS device." },
@@ -330,7 +331,7 @@ function renderStart(){
       <div class="name-warning hidden" id="nameWarning">Please fill in your Name, Class, and PRN before starting.</div>
     </div>
     <h2 style="font-family:'Fraunces',serif;color:var(--graphite);font-size:24px;margin-top:22px;">Ready to investigate?</h2>
-    <p style="color:var(--muted);font-size:15px;margin-top:6px;">Work through all three rounds in order. Each clue has one correct material \u2014 pick it, and you'll see why right away.</p>
+    <p style="color:var(--muted);font-size:15px;margin-top:6px;">Work through all three rounds in order. Each clue has one correct material — pick it, and you'll see why right away.</p>
     <div class="rounds-preview"></div>
     <div class="submit-row" style="margin-top:26px;justify-content:flex-start;">
       <button class="btn btn-primary" id="beginBtn">Start Round 1</button>
@@ -387,7 +388,7 @@ function renderRound(){
   round.clues.forEach((c, idx) => {
     const chosen = state.answers[idx];
     const clueEl = el(`<div class="clue ${chosen ? 'filled':''}">
-      <div class="clue-text"><span class="qnum">${idx+1}</span>\u201C${c.text}\u201D</div>
+      <div class="clue-text"><span class="qnum">${idx+1}</span>“${c.text}”</div>
       <div class="chips"></div>
     </div>`);
     const chipsWrap = clueEl.querySelector(".chips");
@@ -446,7 +447,7 @@ function renderRoundResults(){
     <div class="results-actions">
       <button class="btn btn-primary" id="nextBtn">${isLastRound ? "See Final Results" : "Start Round " + (state.roundIndex+2)}</button>
     </div>
-    <div class="submit-status" id="submitStatus">Sending round result to your instructor\u2026</div>
+    <div class="submit-status" id="submitStatus">Sending round result to your instructor…</div>
   </div>`);
 
   const statusEl = wrap.querySelector("#submitStatus");
@@ -463,13 +464,13 @@ function renderRoundResults(){
       round: round.name,
       roundNumber: state.roundIndex + 1,
       score, max, percent: pct,
-      details: results.map(r => `${r.correct ? "\u2705" : "\u274C"} ${r.answer}`).join(" | "),
+      details: results.map(r => `${r.correct ? "✅" : "❌"} ${r.answer}`).join(" | "),
     }).then(res => {
       if (res.sent) {
-        statusEl.textContent = "\u2713 Round result sent to your instructor";
+        statusEl.textContent = "✓ Round result sent to your instructor";
         statusEl.className = "submit-status ok";
       } else {
-        statusEl.textContent = "\u26A0 Couldn't reach the results sheet \u2014 your instructor may not see this attempt";
+        statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
       }
     });
@@ -478,10 +479,10 @@ function renderRoundResults(){
   const list = wrap.querySelector(".results-list");
   results.forEach(r => {
     const card = el(`<div class="result-card ${r.correct ? 'good' : 'bad'}">
-      <div class="result-icon">${r.correct ? "\u2705" : "\u274C"}</div>
+      <div class="result-icon">${r.correct ? "✅" : "❌"}</div>
       <div class="result-body">
-        <div class="rclue">\u201C${r.clue}\u201D</div>
-        <div class="rchoice">${r.correct ? `Correct \u2014 ${r.answer}` : `You said ${r.chosen} \u2014 it's actually ${r.answer}`}</div>
+        <div class="rclue">“${r.clue}”</div>
+        <div class="rchoice">${r.correct ? `Correct — ${r.answer}` : `You said ${r.chosen} — it's actually ${r.answer}`}</div>
         <div class="rtext">${r.why}</div>
       </div>
     </div>`);
@@ -504,10 +505,10 @@ function renderRoundResults(){
 }
 
 function ratingFor(pct){
-  if (pct >= 90) return { title:"Master Detective", emoji:"\uD83D\uDD75\uFE0F" };
-  if (pct >= 70) return { title:"Sharp-Eyed Investigator", emoji:"\uD83D\uDD0D" };
-  if (pct >= 50) return { title:"Promising Rookie", emoji:"\uD83D\uDCDD" };
-  return { title:"Back to the Case Files", emoji:"\uD83D\uDCC1" };
+  if (pct >= 90) return { title:"Master Detective", emoji:"🕵️" };
+  if (pct >= 70) return { title:"Sharp-Eyed Investigator", emoji:"🔍" };
+  if (pct >= 50) return { title:"Promising Rookie", emoji:"📝" };
+  return { title:"Back to the Case Files", emoji:"📁" };
 }
 
 function renderFinal(){
@@ -521,15 +522,15 @@ function renderFinal(){
       <div class="score-badge"><div class="num">${pct}%</div><div class="max">${totalScore} / ${totalMax} pts</div></div>
       <div class="score-copy">
         <h2>${rating.emoji} ${rating.title}</h2>
-        <p>You've been through all three rounds \u2014 field-responsive materials, photoactive materials, and exotic structures.</p>
+        <p>You've been through all three rounds — field-responsive materials, photoactive materials, and exotic structures.</p>
       </div>
     </div>
     <div class="final-rounds"></div>
     <div class="results-actions">
       <button class="btn btn-primary" id="restartBtn">Play Again</button>
     </div>
-    <div class="submit-status" id="submitStatus">Sending your result to your instructor\u2026</div>
-    <div class="legend">Each correct clue = 10 pts. Discuss any misses as a class \u2014 they're usually the easiest ones to mix up.</div>
+    <div class="submit-status" id="submitStatus">Sending your result to your instructor…</div>
+    <div class="legend">Each correct clue = 10 pts. Discuss any misses as a class — they're usually the easiest ones to mix up.</div>
   </div>`);
 
   const statusEl = wrap.querySelector("#submitStatus");
@@ -547,10 +548,10 @@ function renderFinal(){
       details: state.roundScores.map(r => `${r.name}: ${r.score}/${r.max}`).join(" | "),
     }).then(res => {
       if (res.sent) {
-        statusEl.textContent = "\u2713 Result sent to your instructor";
+        statusEl.textContent = "✓ Result sent to your instructor";
         statusEl.className = "submit-status ok";
       } else {
-        statusEl.textContent = "\u26A0 Couldn't reach the results sheet \u2014 your instructor may not see this attempt";
+        statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
       }
     });
