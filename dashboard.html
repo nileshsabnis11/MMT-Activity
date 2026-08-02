@@ -683,7 +683,7 @@ function renderActQBars(rows) {
   } else if (qInfo.type === "old" && qInfo.detailCols.length) {
     qInfo.detailCols.forEach(col => {
       let correct = 0, total = 0;
-      rows.forEach(r => { const v = String(r[col]||""); if(!v) return; total++; if(v.includes("✅")||v.includes("(good)")||v.includes("Correct")) correct++; });
+      rows.forEach(r => { const v = String(r[col]||""); if(!v) return; total++; if(v.includes("✅")||v.includes("(good)")||v.includes("Correct")||v.includes("[v]")) correct++; });
       if (total === 0) return;
       const accuracy = Math.round((correct / total) * 100);
       qData.push({ label: col.replace(" Detail",""), accuracy, correct, total, avgMarks: "" });
@@ -758,7 +758,7 @@ function renderHeatmap(rows) {
           if (!isNaN(m)) { marks = (marks === null ? 0 : marks) + m; }
         } else {
           const v = String(r[col]||"");
-          if (v.includes("✅")||v.includes("(good)")||v.includes("Correct")) { marks = (marks === null ? 0 : marks) + 10; }
+          if (v.includes("✅")||v.includes("(good)")||v.includes("Correct")||v.includes("[v]")) { marks = (marks === null ? 0 : marks) + 10; }
           else if (v.includes("⚠")||v.includes("(warn)")) { marks = (marks === null ? 0 : marks) + 5; }
           else if (v) { if (marks === null) marks = 0; }
         }

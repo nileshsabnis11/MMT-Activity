@@ -704,9 +704,9 @@ function handleSubmit() {
     let userChoice = state.placements[item.name];
     if (userChoice === item.correctCategory) {
       score += 10;
-      detailsArr.push(`[v] ${item.name}`);
+      detailsArr.push(`[${item.name}]: Correct`);
     } else {
-      detailsArr.push(`[x] ${item.name} (Chose: ${userChoice})`);
+      detailsArr.push(`[${item.name}]: Wrong (Chose: ${userChoice || "—"})`);
     }
   });
 
