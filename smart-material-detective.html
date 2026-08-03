@@ -132,7 +132,7 @@
 
   .name-gate{ background:var(--robot-blue-light); border-radius:12px; padding:16px 20px; }
   .name-gate label{ display:block; font-size:13px; font-weight:700; color:var(--robot-blue); margin-bottom:8px; }
-  .name-gate input{
+  .name-gate input, .name-gate select{
     width:100%; max-width:360px; font-family:'Inter',sans-serif; font-size:15px;
     padding:11px 14px; border-radius:8px; border:1.5px solid #C7DAE3; background:var(--white);
   }
@@ -206,6 +206,7 @@
   <div class="panel" id="panel"></div>
 </div>
 
+<script src="mmt-utils.js"></script>
 <script>
 // ============================================================
 // TEACHER RESULTS TRACKING
@@ -220,14 +221,22 @@ const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcx
 const COLLEGE_NAME = "Rajarambapu Institute of Technology";
 const DEPARTMENT = "Robotics and Automation";
 
+// ---- Shared utilities (mmt-utils.js). Fallbacks keep the file working
+//      even if the library fails to load. ----
+const MMT = window.MMT || {
+  shuffle: a => a.slice(),
+  submitResult: (url, payload) => (!url ? Promise.resolve({sent:false,reason:"no-url"})
+    : fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+        .then(()=>({sent:true})).catch(()=>({sent:false,reason:"network"}))),
+  isPractice: () => false,
+  modeBanner: () => null,
+  downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+};
+if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
+const PRACTICE = MMT.isPractice();
+
 function submitResult(payload) {
-  if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
-  return fetch(SHEET_WEBHOOK_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+  return MMT.submitResult(SHEET_WEBHOOK_URL, payload);
 }
 
 const ROUNDS = [
@@ -304,6 +313,8 @@ function el(html){ const t=document.createElement("template"); t.innerHTML=html.
 function render(){
   const panel = document.getElementById("panel");
   panel.innerHTML = "";
+  const banner = MMT.modeBanner();
+  if (banner) panel.appendChild(banner);
   if (state.screen === "start") panel.appendChild(renderStart());
   else if (state.screen === "round") panel.appendChild(renderRound());
   else if (state.screen === "roundResults") panel.appendChild(renderRoundResults());
@@ -318,7 +329,13 @@ function renderStart(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
         <div>
           <label for="classInput" style="margin-top:0;">Class / Section</label>
-          <input type="text" id="classInput" placeholder="e.g. TE-A" value="${state.studentClass.replace(/"/g,'&quot;')}" />
+          <select id="classInput">
+            <option value="" ${!state.studentClass ? "selected" : ""} disabled>Select your year…</option>
+            <option value="FY" ${state.studentClass === "FY" ? "selected" : ""}>FY — First Year</option>
+            <option value="SY" ${state.studentClass === "SY" ? "selected" : ""}>SY — Second Year</option>
+            <option value="TY" ${state.studentClass === "TY" ? "selected" : ""}>TY — Third Year</option>
+            <option value="Final Year" ${state.studentClass === "Final Year" ? "selected" : ""}>Final Year</option>
+          </select>
         </div>
         <div>
           <label for="prnInput" style="margin-top:0;">PRN / Roll No.</label>
@@ -373,6 +390,14 @@ function renderRound(){
   const done = Object.keys(state.answers).length;
   const allDone = done === total;
 
+  // Anti-copying: shuffle clue display order + option order, stable per attempt
+  state._clueOrder = state._clueOrder || {};
+  state._optOrder = state._optOrder || {};
+  if (!state._clueOrder[state.roundIndex]) state._clueOrder[state.roundIndex] = MMT.shuffle(round.clues.map((_, i) => i));
+  if (!state._optOrder[state.roundIndex]) state._optOrder[state.roundIndex] = MMT.shuffle(round.options);
+  const _clueOrder = state._clueOrder[state.roundIndex];
+  const _opts = state._optOrder[state.roundIndex];
+
   const wrap = el(`<div>
     <div class="round-header">
       <div>
@@ -385,14 +410,15 @@ function renderRound(){
   </div>`);
 
   const cluesWrap = wrap.querySelector(".clues");
-  round.clues.forEach((c, idx) => {
+  _clueOrder.forEach((idx, pos) => {
+    const c = round.clues[idx];
     const chosen = state.answers[idx];
     const clueEl = el(`<div class="clue ${chosen ? 'filled':''}">
-      <div class="clue-text"><span class="qnum">${idx+1}</span>“${c.text}”</div>
+      <div class="clue-text"><span class="qnum">${pos+1}</span>“${c.text}”</div>
       <div class="chips"></div>
     </div>`);
     const chipsWrap = clueEl.querySelector(".chips");
-    round.options.forEach(opt => {
+    _opts.forEach(opt => {
       const chip = el(`<button class="chip ${chosen===opt?'selected':''}">${opt}</button>`);
       chip.addEventListener("click", () => {
         state.answers[idx] = opt;
@@ -445,13 +471,17 @@ function renderRoundResults(){
     </div>
     <div class="results-list"></div>
     <div class="results-actions">
+      ${PRACTICE ? '<button class="btn btn-ghost" id="retryBtn">↻ Try this round again</button>' : ''}
       <button class="btn btn-primary" id="nextBtn">${isLastRound ? "See Final Results" : "Start Round " + (state.roundIndex+2)}</button>
     </div>
     <div class="submit-status" id="submitStatus">Sending round result to your instructor…</div>
   </div>`);
 
   const statusEl = wrap.querySelector("#submitStatus");
-  if (!SHEET_WEBHOOK_URL) {
+  if (PRACTICE) {
+    statusEl.textContent = "Practice mode — this attempt was NOT recorded.";
+    statusEl.className = "submit-status";
+  } else if (!SHEET_WEBHOOK_URL) {
     statusEl.textContent = "";
   } else {
     submitResult({
@@ -464,11 +494,14 @@ function renderRoundResults(){
       round: round.name,
       roundNumber: state.roundIndex + 1,
       score, max, percent: pct,
-      details: results.map(r => `${r.correct ? "✅" : "❌"} ${r.answer}`).join(" | "),
+      details: results.map(r => r.correct ? `✅ ${r.answer}` : `❌ Chose: ${r.chosen}`).join(" | "),
     }).then(res => {
       if (res.sent) {
         statusEl.textContent = "✓ Round result sent to your instructor";
         statusEl.className = "submit-status ok";
+      } else if (res.queued) {
+        statusEl.textContent = "⏳ Network is down — result saved and will auto-send when you're back online.";
+        statusEl.className = "submit-status warn";
       } else {
         statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
@@ -487,6 +520,15 @@ function renderRoundResults(){
       </div>
     </div>`);
     list.appendChild(card);
+  });
+
+  const retryBtn = wrap.querySelector("#retryBtn");
+  if (retryBtn) retryBtn.addEventListener("click", () => {
+    state.answers = {};
+    if (state._clueOrder) delete state._clueOrder[state.roundIndex];   // reshuffle
+    if (state._optOrder) delete state._optOrder[state.roundIndex];
+    state.screen = "round";
+    render();
   });
 
   wrap.querySelector("#nextBtn").addEventListener("click", () => {
@@ -527,14 +569,18 @@ function renderFinal(){
     </div>
     <div class="final-rounds"></div>
     <div class="results-actions">
-      <button class="btn btn-primary" id="restartBtn">Play Again</button>
+      <button class="btn btn-primary" id="cardBtn">⬇ Download Result Card</button>
+      <button class="btn" id="restartBtn">Play Again</button>
     </div>
     <div class="submit-status" id="submitStatus">Sending your result to your instructor…</div>
     <div class="legend">Each correct clue = 10 pts. Discuss any misses as a class — they're usually the easiest ones to mix up.</div>
   </div>`);
 
   const statusEl = wrap.querySelector("#submitStatus");
-  if (!SHEET_WEBHOOK_URL) {
+  if (PRACTICE) {
+    statusEl.textContent = "Practice mode — results were NOT recorded.";
+    statusEl.className = "submit-status";
+  } else if (!SHEET_WEBHOOK_URL) {
     statusEl.textContent = "";
   } else {
     submitResult({
@@ -550,6 +596,9 @@ function renderFinal(){
       if (res.sent) {
         statusEl.textContent = "✓ Result sent to your instructor";
         statusEl.className = "submit-status ok";
+      } else if (res.queued) {
+        statusEl.textContent = "⏳ Network is down — result saved and will auto-send when you're back online.";
+        statusEl.className = "submit-status warn";
       } else {
         statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
@@ -567,8 +616,18 @@ function renderFinal(){
   });
 
   wrap.querySelector("#restartBtn").addEventListener("click", () => {
-    state = { screen: "start", roundIndex: 0, answers: {}, roundScores: [], studentName: state.studentName, studentClass: state.studentClass, prn: state.prn };
+    state = { screen: "start", roundIndex: 0, answers: {}, _clueOrder: {}, _optOrder: {}, roundScores: [], studentName: state.studentName, studentClass: state.studentClass, prn: state.prn };
     render();
+  });
+
+  wrap.querySelector("#cardBtn").addEventListener("click", () => {
+    MMT.downloadReportCard({
+      activity: "Smart Material Detective",
+      name: state.studentName, studentClass: state.studentClass, prn: state.prn,
+      college: COLLEGE_NAME, department: DEPARTMENT,
+      percent: pct, scoreLine: totalScore + " / " + totalMax + " pts", rating: rating.title,
+      rows: state.roundScores.map(r => ({ label: r.name, value: r.score + " / " + r.max })),
+    });
   });
 
   return wrap;
@@ -576,6 +635,6 @@ function renderFinal(){
 
 render();
 </script>
-<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis</div>
+<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
 </body>
 </html>

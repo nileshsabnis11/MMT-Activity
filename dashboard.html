@@ -585,6 +585,12 @@ function renderActivityDetail(gameName) {
       <div class="insight-grid" id="insights"></div>
     </div>
 
+    <div class="panel" id="distractorPanel">
+      <h2 style="color:var(--graphite)">Distractor Analysis 🔍</h2>
+      <p class="panel-sub">What wrong answers did students pick? This reveals the <i>misconceptions</i> to re-teach — not just who got it wrong, but <b>why</b>.</p>
+      <div id="distractorContent"></div>
+    </div>
+
     <div class="panel">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
         <div>
@@ -627,6 +633,7 @@ function renderActivityDetail(gameName) {
     const rows = getRows();
     renderActCharts(rows, rounds, allGameRows);
     renderActQBars(rows);
+    renderDistractors(rows);
     renderHeatmap(rows);
     renderActTable(rows);
   }
@@ -729,6 +736,98 @@ function renderActQBars(rows) {
       <div class="detail">From ${rows.length} student submissions</div>
     </div>
   `;
+}
+
+function renderDistractors(rows) {
+  const wrap = document.getElementById("distractorContent");
+  wrap.innerHTML = "";
+  const qInfo = getQCols();
+  const cols = qInfo.type === "new" ? qInfo.answerCols : (qInfo.detailCols || []);
+  if (!cols.length) { wrap.innerHTML = '<p class="empty">No question data for distractor analysis.</p>'; return; }
+
+  // Build per-question wrong-answer tallies
+  const data = []; // [{label, total, wrongCount, tallies: {wrongAnswer: count}}]
+  cols.forEach((col, i) => {
+    const tallies = {};
+    let total = 0, wrongCount = 0;
+    rows.forEach(r => {
+      const val = String(r[col] || "").trim();
+      if (!val) return;
+      total++;
+
+      // Determine if this answer was correct
+      const isCorrect = (
+        val.includes("✅") || val.includes("Correct") || val.includes("(good)") ||
+        val.includes("(warn)") || val.includes("[v]") || val.includes("⚠")
+      );
+
+      if (!isCorrect) {
+        wrongCount++;
+        // Extract the wrong answer from strings like:
+        //   "❌ Titanium"  /  "[Frame]: Wrong (Chose: Titanium)"  /  "❌ Wrong"
+        let pick = "";
+        // Pattern 1: "[Label]: Wrong (Chose: XYZ)"
+        const m1 = val.match(/Chose:\s*([^)]+)/);
+        // Pattern 2: "❌ XYZ" (emoji followed by text)
+        const m2 = val.match(/❌\s*(.+)/);
+        if (m1) pick = m1[1].trim();
+        else if (m2 && !val.match(/❌\s*Wrong/)) pick = m2[1].trim();
+        else pick = "(no detail)";
+        tallies[pick] = (tallies[pick] || 0) + 1;
+      }
+    });
+    if (total === 0) return;
+    const label = col.replace(" Answer","").replace(" Detail","");
+    // Sort tallies by frequency descending
+    const sortedTallies = Object.entries(tallies).sort((a,b) => b[1] - a[1]);
+    data.push({ label, total, wrongCount, wrongRate: Math.round((wrongCount/total)*100), tallies: sortedTallies });
+  });
+
+  if (!data.length) { wrap.innerHTML = '<p class="empty">No wrong answers — everyone aced it! 🎉</p>'; return; }
+
+  // Render: each question gets a collapsible block showing top wrong answers
+  // Highlight the most-misunderstood questions first
+  const sorted = [...data].sort((a,b) => b.wrongRate - a.wrongRate);
+  let html = '';
+
+  sorted.forEach((d, idx) => {
+    const severity = d.wrongRate >= 50 ? "critical" : d.wrongRate >= 25 ? "warning" : "ok";
+    const icon = severity === "critical" ? "🔴" : severity === "warning" ? "🟡" : "🟢";
+    const bg = severity === "critical" ? "var(--bad-bg)" : severity === "warning" ? "var(--warn-bg)" : "var(--good-bg)";
+
+    html += `<div style="background:${bg};border-radius:12px;padding:16px 20px;margin-bottom:12px;border-left:4px solid ${severity==='critical'?'var(--bad)':severity==='warning'?'var(--copper)':'var(--good)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <b style="font-family:Fraunces,serif;font-size:17px;color:var(--graphite);">${icon} ${esc(d.label)}</b>
+        <span style="font-size:13px;font-weight:700;color:${severity==='critical'?'var(--bad)':severity==='warning'?'var(--warn)':'var(--good)'};">${d.wrongRate}% wrong (${d.wrongCount}/${d.total} students)</span>
+      </div>`;
+
+    if (!d.tallies.length) {
+      html += '<p style="font-size:13px;color:var(--muted);margin:6px 0 0;">No details available for wrong answers — consider enabling per-question answer logging in your activities.</p>';
+    } else {
+      html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;font-weight:600;color:var(--muted);">Most-chosen wrong answers:</span>';
+      const topN = d.tallies.slice(0, 5);
+      topN.forEach(t => {
+        const pct = Math.round((t[1] / d.wrongCount) * 100);
+        html += `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--white);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink);border:1.5px solid #E3E0D8;">
+          <span style="font-size:11px;background:var(--graphite);color:var(--white);border-radius:42%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;">${t[1]}</span>
+          ${esc(t[0])}
+          <span style="color:var(--muted);font-size:11px;font-weight:500;">(${pct}% of wrong)</span>
+        </span>`;
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  // Summary insight
+  const worstQ = sorted[0];
+  html += `<div class="insight" style="border-left-color:var(--bad);margin-top:12px;">
+    <div class="label">Biggest Misconception</div>
+    <div class="value">${worstQ.label} — ${worstQ.wrongRate}% wrong</div>
+    <div class="detail">This question confused ${worstQ.wrongCount} out of ${worstQ.total} students. Focus your re-teach here${worstQ.tallies.length ? ' on the wrong answers shown above' : ''}.</div>
+  </div>`;
+
+  wrap.innerHTML = html;
 }
 
 function renderHeatmap(rows) {
@@ -842,11 +941,22 @@ function generateDemoData() {
           "Game":g.game,"Type":g.type,"Round / Mission":round,"Round #":"Round "+(ri+1),
           "Student Name":name
         };
+        // Plausible wrong answers per activity, so the Distractor panel has data to show
+        const distractors = g.game === "Build-a-Robot"
+          ? ["High Strength Steel","Magnesium Alloy","FRP Composite","Piezoelectric"]
+          : ["Piezoelectric","Shape Memory Alloy","Photochromic","Thermochromic"];
         for(let q=1;q<=qc;q++){
           const correct = Math.random()>0.35;
           const marks = correct ? g.maxPer : (Math.random()>0.7 && g.maxPer===20 ? 12 : 0);
           score += marks;
-          row["Q"+q+" Answer"] = correct ? "✅ Correct" : (marks===12 ? "⚠️ Acceptable" : "❌ Wrong");
+          if (correct) {
+            row["Q"+q+" Answer"] = "✅ Correct";
+          } else if (marks === 12) {
+            row["Q"+q+" Answer"] = "⚠️ Acceptable";
+          } else {
+            const pick = distractors[Math.floor(Math.random()*distractors.length)];
+            row["Q"+q+" Answer"] = "[Q"+q+"]: Wrong (Chose: "+pick+")";
+          }
           row["Q"+q+" Marks"] = marks;
         }
         row["Total Score"] = score; row["Max Score"] = max; row["Percent"] = Math.round((score/max)*100)+"%";
@@ -857,6 +967,6 @@ function generateDemoData() {
   return { headers, rows };
 }
 </script>
-<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis</div>
+<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
 </body>
 </html>

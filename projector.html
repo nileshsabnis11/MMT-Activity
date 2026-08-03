@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Leaderboard — Projector Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graphite:#1C2B33;--graphite2:#142027;--steel:#3E5C67;--steel-light:#E3EAEC;
+    --copper:#D98E3B;--copper-light:#F6E4C8;--robot-blue:#2A5C7A;--robot-blue-light:#DCEAF1;
+    --ink:#23343C;--muted:#5C7079;--card:#F4F2EE;--white:#FFFFFF;
+    --gold:#E8B84B;--silver:#C7D0D4;--bronze:#C98A52;
+    --good:#3E7A52;--good-bg:#E7F3EA;--warn:#9A6B1E;--warn-bg:#FBF0DC;--bad:#A23B3B;--bad-bg:#FBEAEA;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:radial-gradient(1200px 600px at 20% -10%, #24404c 0%, var(--graphite) 55%) fixed, var(--graphite);
+    color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;padding:2.2vh 2.4vw 3vh;overflow-x:hidden;
+  }
+  .app{max-width:1700px;margin:0 auto;}
+
+  /* ---- Header ---- */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:2.4vh;flex-wrap:wrap;}
+  .eyebrow{font-size:clamp(12px,1vw,16px);font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--copper);margin:0 0 8px;}
+  h1{font-family:'Fraunces',serif;font-weight:700;color:var(--white);font-size:clamp(30px,4.2vw,58px);line-height:1.02;}
+  .top .sub{color:var(--steel-light);font-size:clamp(13px,1.1vw,18px);margin-top:8px;}
+  .live-chip{display:inline-flex;align-items:center;gap:9px;background:rgba(217,142,59,.16);border:1px solid var(--copper);
+    color:var(--copper-light);font-weight:700;font-size:clamp(12px,1vw,15px);padding:9px 16px;border-radius:999px;letter-spacing:.05em;}
+  .live-dot{width:11px;height:11px;border-radius:50%;background:#48d17a;box-shadow:0 0 0 0 rgba(72,209,122,.7);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(72,209,122,.6);}70%{box-shadow:0 0 0 12px rgba(72,209,122,0);}100%{box-shadow:0 0 0 0 rgba(72,209,122,0);}}
+  .head-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+
+  /* ---- Stat strip ---- */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1.1vw;margin-bottom:2.4vh;}
+  .stat{background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.6vh 1vw;text-align:center;}
+  .stat .n{font-family:'Fraunces',serif;font-weight:700;color:var(--copper);font-size:clamp(26px,3vw,46px);line-height:1;}
+  .stat .l{font-size:clamp(10px,.85vw,14px);font-weight:600;color:var(--steel-light);margin-top:8px;text-transform:uppercase;letter-spacing:.06em;}
+
+  /* ---- Layout ---- */
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:1.4vw;align-items:start;}
+  .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:2vh 1.6vw;}
+  .card h2{font-family:'Fraunces',serif;color:var(--white);font-size:clamp(18px,1.7vw,26px);margin-bottom:.4vh;}
+  .card .cap{color:var(--muted);font-size:clamp(11px,.9vw,14px);margin-bottom:1.6vh;}
+
+  /* ---- Leaderboard rows ---- */
+  .lb{display:flex;flex-direction:column;gap:10px;}
+  .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:1.15vh 1vw;
+    transition:background .25s ease, transform .25s ease;}
+  .row.new{animation:flash 1.4s ease;}
+  @keyframes flash{0%{background:rgba(217,142,59,.35);}100%{background:rgba(255,255,255,.05);}}
+  .rank{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(18px,1.7vw,28px);color:var(--steel-light);width:clamp(34px,3vw,54px);text-align:center;}
+  .row.r1 .rank{color:var(--gold);} .row.r2 .rank{color:var(--silver);} .row.r3 .rank{color:var(--bronze);}
+  .row.r1{border-color:rgba(232,184,75,.5);background:rgba(232,184,75,.10);}
+  .row.r2{border-color:rgba(199,208,212,.4);}
+  .row.r3{border-color:rgba(201,138,82,.4);}
+  .medal{font-size:clamp(16px,1.5vw,26px);}
+  .who .nm{font-weight:700;color:var(--white);font-size:clamp(15px,1.35vw,22px);line-height:1.15;}
+  .who .meta{color:var(--muted);font-size:clamp(11px,.9vw,14px);margin-top:2px;}
+  .who .meta b{color:var(--steel-light);font-weight:600;}
+  .sc{text-align:right;}
+  .sc .pct{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(20px,1.9vw,32px);line-height:1;}
+  .sc .pts{color:var(--muted);font-size:clamp(11px,.9vw,14px);margin-top:3px;}
+  .pct.good{color:#7fd79a;} .pct.warn{color:var(--gold);} .pct.bad{color:#e88;}
+
+  /* ---- Right column ---- */
+  .mini{display:flex;flex-direction:column;gap:12px;}
+  .actbar{display:flex;flex-direction:column;gap:6px;}
+  .actbar .lab{display:flex;justify-content:space-between;font-size:clamp(12px,1vw,15px);color:var(--steel-light);font-weight:600;}
+  .actbar .lab span:last-child{color:var(--copper-light);}
+  .bar{height:12px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}
+  .bar > i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--copper),var(--gold));transition:width .8s ease;}
+  .recent{display:flex;flex-direction:column;gap:8px;margin-top:.5vh;}
+  .recent .r{display:flex;justify-content:space-between;gap:10px;font-size:clamp(12px,1vw,15px);
+    padding:.9vh .6vw;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);}
+  .recent .r .l{color:var(--white);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .recent .r .l small{color:var(--muted);font-weight:400;}
+  .recent .r .p{font-weight:700;white-space:nowrap;}
+
+  /* ---- Controls ---- */
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:1.8vh;}
+  select, .btn{font-family:'Inter',sans-serif;font-size:clamp(12px,1vw,15px);font-weight:600;border-radius:10px;padding:9px 14px;border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.06);color:var(--white);cursor:pointer;outline:none;}
+  select option{color:#111;}
+  .btn.copper{background:var(--copper);color:var(--graphite);border-color:var(--copper);}
+  .refresh-note{color:var(--muted);font-size:clamp(11px,.9vw,14px);margin-left:auto;}
+
+  .empty{text-align:center;color:var(--steel-light);padding:6vh 2vw;font-size:clamp(15px,1.3vw,20px);}
+  .empty .big{font-family:'Fraunces',serif;font-size:clamp(22px,2.4vw,36px);color:var(--white);margin-bottom:12px;}
+  .err{background:var(--bad-bg);color:var(--ink);border-radius:16px;padding:22px 26px;border:2px solid var(--bad);max-width:640px;margin:6vh auto;}
+  .err h3{font-family:'Fraunces',serif;color:var(--graphite);font-size:20px;margin-bottom:8px;}
+  .err .btn{background:var(--copper);color:var(--graphite);border:none;margin-top:14px;}
+
+  @media (max-width:1100px){ .grid{grid-template-columns:1fr;} .stats{grid-template-columns:repeat(3,1fr);} }
+  .fadefoot{text-align:center;color:var(--muted);font-size:12px;margin-top:2.4vh;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <p class="eyebrow" id="eyebrow">Live Classroom · Front of Class</p>
+      <h1>Live Leaderboard</h1>
+      <div class="sub" id="orgSub">Rajarambapu Institute of Technology · Robotics and Automation</div>
+    </div>
+    <div class="head-right">
+      <span class="live-chip"><span class="live-dot"></span> LIVE · auto-refreshing</span>
+      <div class="sub" id="clock" style="font-variant-numeric:tabular-nums;"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label style="color:var(--steel-light);font-size:14px;font-weight:600;">Activity:</label>
+    <select id="gameSel"><option value="all">All Activities</option></select>
+    <label style="color:var(--steel-light);font-size:14px;font-weight:600;">Class:</label>
+    <select id="classSel"><option value="all">All Classes</option></select>
+    <button class="btn copper" id="refreshBtn">↻ Refresh now</button>
+    <span class="refresh-note" id="refreshNote">Next refresh in 20s</span>
+  </div>
+
+  <div id="stage">
+    <div class="empty"><div class="big">Connecting to results sheet…</div>Waiting for the first submissions to come in.</div>
+  </div>
+
+  <div class="fadefoot">MMT Activities System · Projector Mode — leave this open on the classroom screen. Data updates automatically as students submit.</div>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG — same Google Apps Script endpoint as the dashboard
+// ============================================================
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const REFRESH_SECS = 20;   // auto-refresh interval
+const TOP_N = 12;          // leaderboard rows to show
+
+let DATA = { headers: [], rows: [] };
+let gameFilter = "all";
+let classFilter = "all";
+let countdown = REFRESH_SECS;
+let seenKeys = new Set();   // to flash brand-new entries
+let firstLoad = true;
+
+// ---- helpers ----
+function esc(s){ const d=document.createElement("div"); d.textContent = s==null?"":s; return d.innerHTML; }
+function pctOf(r){ let v = r["Percent"] || r["percent"] || "0"; return parseInt(String(v).replace("%",""),10) || 0; }
+function nameOf(r){ return r["Student Name"] || r["name"] || ""; }
+function gameOf(r){ return r["Game"] || r["game"] || ""; }
+function classOf(r){ return r["Class"] || ""; }
+function scoreOf(r){ return r["Total Score"] || r["Score"] || r["score"] || ""; }
+function maxOf(r){ return r["Max Score"] || r["Max"] || r["max"] || ""; }
+function roundOf(r){ return r["Round / Mission"] || r["round"] || r["mission"] || ""; }
+function dateOf(r){ return r["Date"] || ""; }
+function timeOf(r){ return r["Time"] || ""; }
+function pctClass(p){ return p>=70?"good":p>=50?"warn":"bad"; }
+function keyOf(r){ return [nameOf(r),gameOf(r),roundOf(r),dateOf(r),timeOf(r),scoreOf(r)].join("|"); }
+
+// ============================================================
+//  DATA FETCH
+// ============================================================
+async function fetchData(){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(SCRIPT_URL + "?action=getData", { signal: controller.signal, cache: "no-store" });
+    clearTimeout(timer);
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e){ throw new Error("Bad response from sheet (not JSON). Check the Apps Script deployment."); }
+    DATA = json && json.rows ? json : { headers: [], rows: [] };
+    refreshFilters();
+    render();
+    firstLoad = false;
+  } catch(err){
+    clearTimeout(timer);
+    const msg = err.name === "AbortError" ? "Request timed out (12s). The script may be slow or unreachable." : err.message;
+    if (firstLoad) {
+      document.getElementById("stage").innerHTML =
+        `<div class="err"><h3>Could not connect</h3><p>${esc(msg)}</p><button class="btn" onclick="pull()">Retry</button></div>`;
+    }
+    // if not first load, keep showing the last good data silently
+  }
+}
+
+// ============================================================
+//  FILTER DROPDOWNS
+// ============================================================
+function refreshFilters(){
+  const rows = DATA.rows || [];
+  // org line
+  const college = rows[0]?.["College"] || "";
+  const dept = rows[0]?.["Department"] || "";
+  if (college || dept) document.getElementById("orgSub").textContent = [college, dept].filter(Boolean).join(" · ");
+
+  const games = [...new Set(rows.map(gameOf))].filter(Boolean).sort();
+  const classes = [...new Set(rows.map(classOf))].filter(Boolean).sort();
+
+  const gSel = document.getElementById("gameSel");
+  const cSel = document.getElementById("classSel");
+  syncSelect(gSel, games, gameFilter, "All Activities");
+  syncSelect(cSel, classes, classFilter, "All Classes");
+}
+function syncSelect(sel, values, current, allLabel){
+  const want = ["all", ...values].join("|");
+  if (sel.dataset.sig === want) { sel.value = current; return; }
+  sel.dataset.sig = want;
+  sel.innerHTML = `<option value="all">${allLabel}</option>` + values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  sel.value = values.includes(current) || current === "all" ? current : "all";
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function filteredRows(){
+  let rows = (DATA.rows || []).slice();
+  if (gameFilter !== "all") rows = rows.filter(r => gameOf(r) === gameFilter);
+  if (classFilter !== "all") rows = rows.filter(r => classOf(r) === classFilter);
+  return rows;
+}
+
+// Best attempt per student (highest percent) for the leaderboard
+function bestPerStudent(rows){
+  const map = {};
+  rows.forEach(r => {
+    const n = nameOf(r); if (!n) return;
+    const p = pctOf(r);
+    if (!map[n] || p > map[n]._p) map[n] = Object.assign({}, r, { _p: p });
+  });
+  return Object.values(map).sort((a,b) => b._p - a._p);
+}
+
+function render(){
+  const rows = filteredRows();
+  const stage = document.getElementById("stage");
+
+  if (!rows.length){
+    stage.innerHTML = `<div class="empty"><div class="big">No submissions yet</div>As students finish an activity, their scores appear here live.</div>`;
+    return;
+  }
+
+  // ---- stats ----
+  const students = [...new Set(rows.map(nameOf))].filter(Boolean);
+  const percents = rows.map(pctOf);
+  const avg = percents.length ? Math.round(percents.reduce((a,b)=>a+b,0)/percents.length) : 0;
+  const top = percents.length ? Math.max(...percents) : 0;
+  const activities = [...new Set(rows.map(gameOf))].filter(Boolean);
+  const passRate = percents.length ? Math.round(100 * percents.filter(p=>p>=70).length / percents.length) : 0;
+
+  const statsHTML = `
+    <div class="stats">
+      <div class="stat"><div class="n">${students.length}</div><div class="l">Students</div></div>
+      <div class="stat"><div class="n">${rows.length}</div><div class="l">Submissions</div></div>
+      <div class="stat"><div class="n">${avg}%</div><div class="l">Class Average</div></div>
+      <div class="stat"><div class="n">${top}%</div><div class="l">Top Score</div></div>
+      <div class="stat"><div class="n">${passRate}%</div><div class="l">Scoring ≥70%</div></div>
+    </div>`;
+
+  // ---- leaderboard ----
+  const best = bestPerStudent(rows).slice(0, TOP_N);
+  const medals = ["🥇","🥈","🥉"];
+  const lbHTML = best.map((r, i) => {
+    const p = r._p;
+    const rc = i < 3 ? `r${i+1}` : "";
+    const k = keyOf(r);
+    const isNew = !firstLoad && !seenKeys.has(k);
+    const medal = i < 3 ? `<span class="medal">${medals[i]}</span>` : "";
+    return `<div class="row ${rc} ${isNew?"new":""}">
+      <div class="rank">${medal || (i+1)}</div>
+      <div class="who">
+        <div class="nm">${esc(nameOf(r))}</div>
+        <div class="meta"><b>${esc(classOf(r)||"—")}</b> · ${esc(gameOf(r))}${roundOf(r)?` · ${esc(roundOf(r))}`:""}</div>
+      </div>
+      <div class="sc">
+        <div class="pct ${pctClass(p)}">${p}%</div>
+        <div class="pts">${esc(scoreOf(r))}${maxOf(r)!==""?` / ${esc(maxOf(r))}`:""} pts</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  // ---- per-activity averages (right column) ----
+  const perAct = activities.map(g => {
+    const gr = rows.filter(r => gameOf(r) === g);
+    const ap = gr.map(pctOf);
+    const a = ap.length ? Math.round(ap.reduce((x,y)=>x+y,0)/ap.length) : 0;
+    return { g, a, n: gr.length };
+  }).sort((a,b) => b.a - a.a);
+
+  const actHTML = perAct.map(o => `
+    <div class="actbar">
+      <div class="lab"><span>${esc(o.g)}</span><span>${o.a}% · ${o.n} sub${o.n===1?"":"s"}</span></div>
+      <div class="bar"><i style="width:${o.a}%"></i></div>
+    </div>`).join("") || `<div class="cap">No activity breakdown yet.</div>`;
+
+  // ---- most recent submissions ----
+  const recent = rows.slice(-6).reverse().map(r => {
+    const p = pctOf(r);
+    return `<div class="r">
+      <div class="l">${esc(nameOf(r))} <small>· ${esc(gameOf(r))}</small></div>
+      <div class="p pct ${pctClass(p)}" style="font-family:'Fraunces',serif;">${p}%</div>
+    </div>`;
+  }).join("");
+
+  stage.innerHTML = statsHTML + `
+    <div class="grid">
+      <div class="card">
+        <h2>🏆 Top Performers</h2>
+        <div class="cap">Best attempt per student${gameFilter!=="all"?` · ${esc(gameFilter)}`:""}${classFilter!=="all"?` · ${esc(classFilter)}`:""}</div>
+        <div class="lb">${lbHTML}</div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:1.4vh;">
+          <h2>📊 Activity Averages</h2>
+          <div class="cap">Class average score by activity</div>
+          <div class="mini">${actHTML}</div>
+        </div>
+        <div class="card">
+          <h2>⚡ Latest In</h2>
+          <div class="cap">Most recent submissions</div>
+          <div class="recent">${recent}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // record keys so genuinely new entries flash next cycle
+  seenKeys = new Set(rows.map(keyOf));
+}
+
+// ============================================================
+//  REFRESH LOOP + CONTROLS
+// ============================================================
+function pull(){ countdown = REFRESH_SECS; fetchData(); }
+
+document.getElementById("refreshBtn").addEventListener("click", pull);
+document.getElementById("gameSel").addEventListener("change", e => { gameFilter = e.target.value; render(); });
+document.getElementById("classSel").addEventListener("change", e => { classFilter = e.target.value; render(); });
+
+setInterval(() => {
+  countdown--;
+  if (countdown <= 0) pull();
+  document.getElementById("refreshNote").textContent = `Next refresh in ${Math.max(countdown,0)}s`;
+}, 1000);
+
+setInterval(() => {
+  const d = new Date();
+  document.getElementById("clock").textContent = d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}) + " · " + d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+}, 1000);
+
+// kick off
+fetchData();
+</script>
+<div class="fadefoot" style="margin-top:8px;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549) · MMT Activities System</div>
+</body>
+</html>

@@ -218,7 +218,7 @@
 
   .name-gate{ background:var(--robot-blue-light); border-radius:12px; padding:16px 20px; }
   .name-gate label{ display:block; font-size:13px; font-weight:700; color:var(--robot-blue); margin-bottom:8px; }
-  .name-gate input{
+  .name-gate input, .name-gate select{
     width:100%; max-width:360px; font-family:'Inter',sans-serif; font-size:15px;
     padding:11px 14px; border-radius:8px; border:1.5px solid #C7DAE3; background:var(--white);
   }
@@ -280,6 +280,7 @@
   <div class="panel" id="panel"></div>
 </div>
 
+<script src="mmt-utils.js"></script>
 <script>
 // ============================================================
 // TEACHER RESULTS TRACKING
@@ -294,14 +295,22 @@ const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcx
 const COLLEGE_NAME = "Rajarambapu Institute of Technology";
 const DEPARTMENT = "Robotics and Automation";
 
+// ---- Shared utilities (mmt-utils.js). Fallbacks keep the file working
+//      even if the library fails to load. ----
+const MMT = window.MMT || {
+  shuffle: a => a.slice(),
+  submitResult: (url, payload) => (!url ? Promise.resolve({sent:false,reason:"no-url"})
+    : fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+        .then(()=>({sent:true})).catch(()=>({sent:false,reason:"network"}))),
+  isPractice: () => false,
+  modeBanner: () => null,
+  downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+};
+if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
+const PRACTICE = MMT.isPractice();
+
 function submitResult(payload) {
-  if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
-  return fetch(SHEET_WEBHOOK_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+  return MMT.submitResult(SHEET_WEBHOOK_URL, payload);
 }
 
 const MATERIALS = {
@@ -381,6 +390,9 @@ function el(html){ const t=document.createElement("template"); t.innerHTML=html.
 function render(){
   const panel = document.getElementById("panel");
   panel.innerHTML = "";
+  // Practice-mode banner (safe to call every render; only adds element when in practice mode)
+  const banner = MMT.modeBanner();
+  if (banner) panel.appendChild(banner);
   if (state.screen === "start") panel.appendChild(renderStart());
   else if (state.screen === "mission") panel.appendChild(renderMission());
   else if (state.screen === "results") panel.appendChild(renderResults());
@@ -395,7 +407,13 @@ function renderStart(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
         <div>
           <label for="classInput" style="margin-top:0;">Class / Section</label>
-          <input type="text" id="classInput" placeholder="e.g. TE-A" value="${state.studentClass.replace(/"/g,'&quot;')}" />
+          <select id="classInput">
+            <option value="" ${!state.studentClass ? "selected" : ""} disabled>Select your year…</option>
+            <option value="FY" ${state.studentClass === "FY" ? "selected" : ""}>FY — First Year</option>
+            <option value="SY" ${state.studentClass === "SY" ? "selected" : ""}>SY — Second Year</option>
+            <option value="TY" ${state.studentClass === "TY" ? "selected" : ""}>TY — Third Year</option>
+            <option value="Final Year" ${state.studentClass === "Final Year" ? "selected" : ""}>Final Year</option>
+          </select>
         </div>
         <div>
           <label for="prnInput" style="margin-top:0;">PRN / Roll No.</label>
@@ -526,7 +544,11 @@ function renderMission(){
       <div class="chips"></div>
     </div>`);
     const chipsWrap = compEl.querySelector(".chips");
-    MAT_KEYS.forEach(mk => {
+    // Anti-copying: shuffle option order per component, stored so it's stable
+    // across re-renders within this mission (re-randomizes each new attempt).
+    state._optOrder = state._optOrder || {};
+    if (!state._optOrder[c.key]) state._optOrder[c.key] = MMT.shuffle(MAT_KEYS);
+    state._optOrder[c.key].forEach(mk => {
       const mat = MATERIALS[mk];
       const chip = el(`<button class="chip ${chosen===mk?'selected':''}" title="${mat.tag}">${mat.name}</button>`);
       chip.addEventListener("click", () => {
@@ -607,6 +629,7 @@ function renderResults(){
     </div>
     <div class="results-list"></div>
     <div class="results-actions">
+      ${PRACTICE ? '<button class="btn btn-ghost" id="retryBtn">↻ Try this mission again</button>' : ''}
       <button class="btn btn-primary" id="nextBtn">${isLastMission ? "See Final Results" : "Start Mission " + (state.missionIndex+2)}</button>
     </div>
     <div class="submit-status" id="submitStatus">Sending your result to your instructor…</div>
@@ -618,9 +641,13 @@ function renderResults(){
   </div>`);
 
   const statusEl = wrap.querySelector("#submitStatus");
-  if (!SHEET_WEBHOOK_URL) {
+  if (PRACTICE) {
+    statusEl.textContent = "Practice mode — this attempt was NOT recorded.";
+    statusEl.className = "submit-status";
+  } else if (!SHEET_WEBHOOK_URL) {
     statusEl.textContent = "";
   } else {
+    statusEl.textContent = "Sending your result to your instructor…";
     submitResult({
       game: "Build-a-Robot",
       college: COLLEGE_NAME,
@@ -636,6 +663,9 @@ function renderResults(){
       if (res.sent) {
         statusEl.textContent = "✓ Result sent to your instructor";
         statusEl.className = "submit-status ok";
+      } else if (res.queued) {
+        statusEl.textContent = "⏳ Network is down — result saved and will auto-send when you're back online.";
+        statusEl.className = "submit-status warn";
       } else {
         statusEl.textContent = "⚠ Couldn't reach the results sheet — your instructor may not see this attempt";
         statusEl.className = "submit-status warn";
@@ -657,6 +687,14 @@ function renderResults(){
     list.appendChild(card);
   });
 
+  const retryBtn = wrap.querySelector("#retryBtn");
+  if (retryBtn) retryBtn.addEventListener("click", () => {
+    state.choices = {};
+    state._optOrder = {};   // reshuffle options on retry
+    state.screen = "mission";
+    render();
+  });
+
   wrap.querySelector("#nextBtn").addEventListener("click", () => {
     state.missionScores[state.missionIndex] = { name: mission.name, score, max, pct };
     if (isLastMission) {
@@ -664,6 +702,7 @@ function renderResults(){
     } else {
       state.missionIndex += 1;
       state.choices = {};
+      state._optOrder = {};   // fresh option shuffle for the next mission
       state.screen = "mission";
     }
     render();
@@ -688,7 +727,8 @@ function renderFinal(){
     </div>
     <div class="missions" style="margin-bottom:24px;"></div>
     <div class="results-actions">
-      <button class="btn btn-primary" id="restartBtn">Play Again</button>
+      <button class="btn btn-primary" id="cardBtn">⬇ Download Result Card</button>
+      <button class="btn btn-ghost" id="restartBtn">Play Again</button>
     </div>
     <div class="legend">
       <span><b>✅ Perfect</b> = 20 pts</span>
@@ -707,8 +747,18 @@ function renderFinal(){
     grid.appendChild(card);
   });
 
+  wrap.querySelector("#cardBtn").addEventListener("click", () => {
+    MMT.downloadReportCard({
+      activity: "Build-a-Robot",
+      name: state.studentName, studentClass: state.studentClass, prn: state.prn,
+      college: COLLEGE_NAME, department: DEPARTMENT,
+      percent: pct, scoreLine: totalScore + " / " + totalMax + " pts", rating: rating.title,
+      rows: state.missionScores.map(r => ({ label: r.name, value: r.score + "/" + r.max + "  (" + r.pct + "%)" })),
+    });
+  });
+
   wrap.querySelector("#restartBtn").addEventListener("click", () => {
-    state = { screen:"start", missionIndex:0, choices:{}, studentName:state.studentName, studentClass:state.studentClass, prn:state.prn, missionScores:[] };
+    state = { screen:"start", missionIndex:0, choices:{}, _optOrder:{}, studentName:state.studentName, studentClass:state.studentClass, prn:state.prn, missionScores:[] };
     render();
   });
 
@@ -717,6 +767,6 @@ function renderFinal(){
 
 render();
 </script>
-<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis</div>
+<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
 </body>
 </html>

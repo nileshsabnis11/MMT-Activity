@@ -139,13 +139,14 @@ h1, h2, h3, h4 {
   margin-top: 10px;
 }
 
-.name-gate input {
+.name-gate input, .name-gate select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--steel);
   border-radius: 6px;
   font-size: 15px;
   font-family: 'Inter', sans-serif;
+  background: var(--white);
 }
 
 .name-warning {
@@ -384,10 +385,25 @@ h1, h2, h3, h4 {
   </div>
 </div>
 
+<script src="mmt-utils.js"></script>
 <script>
 const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
 const COLLEGE_NAME = "Rajarambapu Institute of Technology";
 const DEPARTMENT = "Robotics and Automation";
+
+// ---- Shared utilities (mmt-utils.js). Fallbacks keep the file working
+//      even if the library fails to load. ----
+const MMT = window.MMT || {
+  shuffle: a => a.slice(),
+  submitResult: (url, payload) => (!url ? Promise.resolve({sent:false,reason:"no-url"})
+    : fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+        .then(()=>({sent:true})).catch(()=>({sent:false,reason:"network"}))),
+  isPractice: () => false,
+  modeBanner: () => null,
+  downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+};
+if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
+const PRACTICE = MMT.isPractice();
 
 const ROUNDS = [
   {
@@ -448,13 +464,7 @@ let state = {
 };
 
 function submitResult(payload) {
-  if (!SHEET_WEBHOOK_URL) return Promise.resolve({ sent: false, reason: "no-url" });
-  return fetch(SHEET_WEBHOOK_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "network" }));
+  return MMT.submitResult(SHEET_WEBHOOK_URL, payload);
 }
 
 function render() {
@@ -484,7 +494,13 @@ function render() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
           <div>
             <label style="margin-top:0;">Class / Section</label>
-            <input type="text" id="classInput" placeholder="e.g. TE-A" value="${state.studentClass}" />
+            <select id="classInput">
+            <option value="" ${!state.studentClass ? "selected" : ""} disabled>Select your year…</option>
+            <option value="FY" ${state.studentClass === "FY" ? "selected" : ""}>FY — First Year</option>
+            <option value="SY" ${state.studentClass === "SY" ? "selected" : ""}>SY — Second Year</option>
+            <option value="TY" ${state.studentClass === "TY" ? "selected" : ""}>TY — Third Year</option>
+            <option value="Final Year" ${state.studentClass === "Final Year" ? "selected" : ""}>Final Year</option>
+          </select>
           </div>
           <div>
             <label style="margin-top:0;">PRN / Roll No.</label>
@@ -512,6 +528,13 @@ function render() {
   
   else if (state.screen === "task") {
     const round = ROUNDS[state.roundIndex];
+    // Anti-copying: shuffle bucket order + item pool order, stable per attempt
+    state._catOrder = state._catOrder || {};
+    state._itemOrder = state._itemOrder || {};
+    if (!state._catOrder[state.roundIndex]) state._catOrder[state.roundIndex] = MMT.shuffle(round.categories);
+    if (!state._itemOrder[state.roundIndex]) state._itemOrder[state.roundIndex] = MMT.shuffle(round.items.map(it => it.name));
+    const _cats = state._catOrder[state.roundIndex];
+    const _itemOrder = state._itemOrder[state.roundIndex];
     eyebrow.textContent = `Round ${state.roundIndex + 1} of ${ROUNDS.length}`;
     title.textContent = round.name;
     
@@ -523,7 +546,7 @@ function render() {
     actionBtn.disabled = placedCount < totalItems;
     actionBtn.onclick = handleSubmit;
 
-    let bucketsHTML = round.categories.map(cat => {
+    let bucketsHTML = _cats.map(cat => {
       let itemsInBucket = round.items.filter(item => state.placements[item.name] === cat);
       let itemsHTML = itemsInBucket.map(item => `
         <div class="chip ${state.activeItem === item.name ? 'active' : ''}" data-name="${item.name}" onclick="handleItemClick('${item.name}')">
@@ -541,7 +564,7 @@ function render() {
       `;
     }).join('');
 
-    let unsortedItems = round.items.filter(item => !state.placements[item.name]);
+    let unsortedItems = _itemOrder.map(n => round.items.find(it => it.name === n)).filter(item => !state.placements[item.name]);
     let poolHTML = unsortedItems.map(item => `
       <div class="chip ${state.activeItem === item.name ? 'active' : ''}" data-name="${item.name}" onclick="handleItemClick('${item.name}')">
         ${item.name}
@@ -641,8 +664,28 @@ function render() {
           <span style="color:var(--copper);">${totalScore} / ${totalMax}</span>
         </div>
       </div>
+
+      <div style="text-align:center; margin-top:24px;">
+        <button id="cardBtn" class="btn">⬇ Download Result Card</button>
+      </div>
     `;
+
+    const _cardBtn = content.querySelector("#cardBtn");
+    if (_cardBtn) _cardBtn.addEventListener("click", () => {
+      MMT.downloadReportCard({
+        activity: "Sort-and-Classify",
+        name: state.studentName, studentClass: state.studentClass, prn: state.prn,
+        college: COLLEGE_NAME, department: DEPARTMENT,
+        percent: finalPct, scoreLine: totalScore + " / " + totalMax + " pts",
+        rating: finalPct >= 90 ? "Outstanding" : finalPct >= 70 ? "Great Job" : finalPct >= 50 ? "Good Effort" : "Keep Practicing",
+        rows: state.roundScores.map((s, idx) => ({ label: "Round " + (idx + 1) + ": " + ROUNDS[idx].name, value: s.score + " / " + s.max })),
+      });
+    });
   }
+
+  // Practice-mode banner (only appears when ?mode=practice)
+  const _banner = MMT.modeBanner();
+  if (_banner) content.insertBefore(_banner, content.firstChild);
 }
 
 function handleStart() {
@@ -718,6 +761,24 @@ function handleSubmit() {
   render();
 
   const statusEl = document.getElementById('submitStatusBanner');
+
+  if (PRACTICE) {
+    statusEl.className = "submit-status warn";
+    statusEl.innerHTML = "Practice mode — this attempt was NOT recorded. " +
+      "<button id='retryRoundBtn' class='btn-primary' style='margin-left:10px;padding:6px 14px;font-size:13px;'>↻ Try this round again</button>";
+    const rb = document.getElementById('retryRoundBtn');
+    if (rb) rb.onclick = () => {
+      state.roundScores.pop();            // drop this practice attempt's score
+      state.placements = {};
+      state.activeItem = null;
+      if (state._itemOrder) delete state._itemOrder[state.roundIndex];  // reshuffle
+      if (state._catOrder) delete state._catOrder[state.roundIndex];
+      state.screen = "task";
+      render();
+    };
+    return;
+  }
+
   statusEl.className = "submit-status sending";
   statusEl.innerHTML = "Sending result to your instructor...";
 
@@ -741,6 +802,9 @@ function handleSubmit() {
     if (res.sent) {
       statusEl.className = "submit-status ok";
       statusEl.innerHTML = "✓ Result securely sent to your instructor.";
+    } else if (res.queued) {
+      statusEl.className = "submit-status warn";
+      statusEl.innerHTML = "⏳ Network is down — result saved and will auto-send when you're back online.";
     } else {
       statusEl.className = "submit-status warn";
       statusEl.innerHTML = "⚠ Couldn't reach the results sheet. (Offline/Network error)";
@@ -769,6 +833,8 @@ function handleRestart() {
     placements: {},
     activeItem: null,
     roundScores: [],
+    _catOrder: {},
+    _itemOrder: {},
     studentName: state.studentName,
     studentClass: state.studentClass,
     prn: state.prn
@@ -780,6 +846,6 @@ window.onload = () => {
   render();
 };
 </script>
-<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis</div>
+<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
 </body>
 </html>
