@@ -401,6 +401,8 @@ const MMT = window.MMT || {
   isPractice: () => false,
   modeBanner: () => null,
   downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+  hintBlock: () => "", toggleHint: () => {}, hintUsed: () => false,
+  resetHints: () => {}, applyHintPenalty: (m) => m, hintTag: () => "",
 };
 if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
 const PRACTICE = MMT.isPractice();
@@ -409,6 +411,7 @@ const ROUNDS = [
   {
     name: "Round 1: The Five Families",
     intro: "A robotics engineer rarely uses just one material family. Classify these robotic components into their primary material family based on their bonding and typical properties.",
+    hint: "Sort by bonding: metallic bonds → conductive & ductile; ionic/covalent networks → hard & brittle; long covalent chains → light & flexible; two phases combined → tailored/lightweight-stiff.",
     categories: ["Metals", "Ceramics & Glasses", "Polymers", "Composites"],
     items: [
       { name: "Robot load-bearing frames", correctCategory: "Metals", why: "Metals provide conductive, ductile, and strong properties ideal for structural load-bearing." },
@@ -424,6 +427,7 @@ const ROUNDS = [
   {
     name: "Round 2: Ferrous vs. Non-Ferrous",
     intro: "Sort these common engineering alloys into Ferrous (iron-based) and Non-Ferrous categories.",
+    hint: "Ferrous = iron (Fe) is the base metal. If the base is copper, aluminium, titanium or nickel, it's non-ferrous.",
     categories: ["Ferrous Alloys", "Non-Ferrous Alloys"],
     items: [
       { name: "Steel", correctCategory: "Ferrous Alloys", why: "Steel is primarily Iron (Fe) combined with Carbon." },
@@ -439,6 +443,7 @@ const ROUNDS = [
   {
     name: "Round 3: Structure to Property Map",
     intro: "Match the physical property or behaviour to the specific crystal structure condition that governs it.",
+    hint: "Phonons/expansion → thermal; free electrons, packing (APF/CN) → electrical; spins & exchange coupling → magnetic.",
     categories: ["Thermal Properties", "Electrical Properties", "Magnetic Properties"],
     items: [
       { name: "Phonon transport efficiency", correctCategory: "Thermal Properties", why: "Heat travels mainly as lattice vibrations (phonons), strongly governed by symmetric structures." },
@@ -576,7 +581,8 @@ function render() {
       <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
         <i>Instructions: Tap an item below to highlight it, then tap a category box to place it.</i>
       </div>
-      
+      ${MMT.hintBlock('sc'+state.roundIndex, round.hint)}
+
       <div class="buckets-container">
         ${bucketsHTML}
       </div>
@@ -707,6 +713,7 @@ function handleStart() {
   state.placements = {};
   state.activeItem = null;
   state.roundScores = [];
+  MMT.resetHints();
   render();
 }
 
@@ -743,13 +750,15 @@ function handleSubmit() {
   let max = round.items.length * 10;
   let detailsArr = [];
 
+  const used = MMT.hintUsed('sc'+state.roundIndex);
+  const tag = MMT.hintTag(used);
   round.items.forEach(item => {
     let userChoice = state.placements[item.name];
     if (userChoice === item.correctCategory) {
-      score += 10;
-      detailsArr.push(`[${item.name}]: Correct`);
+      score += MMT.applyHintPenalty(10, used);
+      detailsArr.push(`[${item.name}]: Correct${tag}`);
     } else {
-      detailsArr.push(`[${item.name}]: Wrong (Chose: ${userChoice || "—"})`);
+      detailsArr.push(`[${item.name}]: Wrong (Chose: ${userChoice || "—"})${tag}`);
     }
   });
 
@@ -771,6 +780,7 @@ function handleSubmit() {
       state.roundScores.pop();            // drop this practice attempt's score
       state.placements = {};
       state.activeItem = null;
+      MMT.resetHints();
       if (state._itemOrder) delete state._itemOrder[state.roundIndex];  // reshuffle
       if (state._catOrder) delete state._catOrder[state.roundIndex];
       state.screen = "task";
@@ -818,6 +828,7 @@ function handleNext() {
     state.screen = "task";
     state.placements = {};
     state.activeItem = null;
+    MMT.resetHints();
     render();
   } else {
     state.screen = "final";

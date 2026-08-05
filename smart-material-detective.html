@@ -231,6 +231,8 @@ const MMT = window.MMT || {
   isPractice: () => false,
   modeBanner: () => null,
   downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+  hintBlock: () => "", toggleHint: () => {}, hintUsed: () => false,
+  resetHints: () => {}, applyHintPenalty: (m) => m, hintTag: () => "",
 };
 if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
 const PRACTICE = MMT.isPractice();
@@ -244,6 +246,7 @@ const ROUNDS = [
     name: "Field-Responsive Materials",
     tag: "Round 1",
     intro: "Five materials that all react to something — heat, light, or a field. Tell them apart.",
+    hint: "Shape memory = heat-triggered shape recovery; MR fluid = liquid→solid under magnetic field; chromoactive = color with temp; electrostrict = voltage (no polarity reversal); magnetostrict = size change under magnetic field.",
     options: ["Shape Memory Alloy", "Chromoactive Material", "Magnetorheological Material", "Electrostrictive Material", "Magnetostrictive Material"],
     clues: [
       { text: "Bend me while I'm cool, then warm me back up — I'll snap right back to my original shape.", answer: "Shape Memory Alloy",
@@ -268,6 +271,7 @@ const ROUNDS = [
     name: "Photoactive Materials",
     tag: "Round 2",
     intro: "Seven families, one trigger: light. Same stimulus, seven completely different jobs.",
+    hint: "Match the JOB under light: hardens→photopolymer; conducts→photoconductor; triggers another molecule→photosensitizer; changes color→photochromic; makes electricity→photovoltaic; speeds a reaction→photocatalyst; flips between two states→photoswitchable.",
     options: ["Photopolymer", "Photoconductor", "Photosensitizer", "Photochromic Material", "Photovoltaic Material", "Photocatalyst", "Photoswitchable Molecule"],
     clues: [
       { text: "Shine UV light on me and I harden — that's how a 3D printer builds an object layer by layer.", answer: "Photopolymer",
@@ -290,6 +294,7 @@ const ROUNDS = [
     name: "Exotic & Micro Structures",
     tag: "Round 3",
     intro: "Materials that break the usual rules — no fixed crystal structure, or barely any structure at all.",
+    hint: "Sensors+electronics on one tiny chip→MEMS; disordered yet metallic→metallic glass; ordered but never repeats→quasicrystal; nanometer grains→nanocrystalline.",
     options: ["MEMS", "Metallic Glass", "Quasicrystalline Material", "Nanocrystalline Material"],
     clues: [
       { text: "I pack sensors, actuators, microstructures, and electronics onto a single chip a few micrometers across.", answer: "MEMS",
@@ -379,6 +384,7 @@ function renderStart(){
       return;
     }
     state.screen = "round"; state.roundIndex = 0; state.answers = {};
+    MMT.resetHints();
     render();
   });
   return wrap;
@@ -406,8 +412,12 @@ function renderRound(){
       </div>
       <div class="progress-pill">${done} / ${total} answered</div>
     </div>
+    <div class="hint-slot"></div>
     <div class="clues"></div>
   </div>`);
+
+  const hs = wrap.querySelector(".hint-slot");
+  if (round.hint) hs.innerHTML = MMT.hintBlock('smd'+state.roundIndex, round.hint);
 
   const cluesWrap = wrap.querySelector(".clues");
   _clueOrder.forEach((idx, pos) => {
@@ -446,11 +456,12 @@ function renderRound(){
 function scoreRound(){
   const round = ROUNDS[state.roundIndex];
   let score = 0;
+  const used = MMT.hintUsed('smd'+state.roundIndex);
   const results = round.clues.map((c, idx) => {
     const chosen = state.answers[idx];
     const correct = chosen === c.answer;
-    if (correct) score += 10;
-    return { clue: c.text, chosen, correct, answer: c.answer, why: c.why };
+    if (correct) score += MMT.applyHintPenalty(10, used);
+    return { clue: c.text, chosen, correct, answer: c.answer, why: c.why, tag: MMT.hintTag(used) };
   });
   return { score, max: round.clues.length*10, results };
 }
@@ -494,7 +505,7 @@ function renderRoundResults(){
       round: round.name,
       roundNumber: state.roundIndex + 1,
       score, max, percent: pct,
-      details: results.map(r => r.correct ? `✅ ${r.answer}` : `❌ Chose: ${r.chosen}`).join(" | "),
+      details: results.map(r => r.correct ? `✅ ${r.answer}${r.tag||""}` : `❌ Chose: ${r.chosen}${r.tag||""}`).join(" | "),
     }).then(res => {
       if (res.sent) {
         statusEl.textContent = "✓ Round result sent to your instructor";
@@ -525,6 +536,7 @@ function renderRoundResults(){
   const retryBtn = wrap.querySelector("#retryBtn");
   if (retryBtn) retryBtn.addEventListener("click", () => {
     state.answers = {};
+    MMT.resetHints();
     if (state._clueOrder) delete state._clueOrder[state.roundIndex];   // reshuffle
     if (state._optOrder) delete state._optOrder[state.roundIndex];
     state.screen = "round";
@@ -538,6 +550,7 @@ function renderRoundResults(){
     } else {
       state.roundIndex += 1;
       state.answers = {};
+      MMT.resetHints();
       state.screen = "round";
     }
     render();

@@ -39,47 +39,38 @@ input:focus{outline:none;border-color:var(--copper);}
 .hidden{display:none;}
 #gate .panel{max-width:380px;margin:60px auto 0;}
 .loading{color:var(--muted);font-size:14px;padding:10px 0;}
-
-  /* ============================================================
-     MOBILE-HARDENING (universal, appended) — v1
-     Fixes: horizontal overflow, small tap targets, font sizing,
-            spacing on narrow screens. Safe overrides.
-     ============================================================ */
+.prow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eee;}
+.prow:last-child{border-bottom:none;}
+.prow .row-title{font-weight:600;color:var(--ink);font-size:15px;}
+.prow .plink{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all;}
+.prow .pbtns{display:flex;gap:8px;flex-shrink:0;}
+.mini{padding:8px 12px;font-size:13px;border-radius:8px;font-weight:700;cursor:pointer;border:1.5px solid var(--copper);background:transparent;color:var(--copper);font-family:inherit;text-decoration:none;white-space:nowrap;}
+.mini:hover{background:var(--copper);color:#fff;}
+.mini.copied{background:var(--green);border-color:var(--green);color:#fff;}
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   html, body { max-width: 100%; overflow-x: hidden; }
   img, svg, video, canvas, table { max-width: 100%; height: auto; }
-  /* long words / URLs shouldn't push the layout wide */
   p, h1, h2, h3, li, td, th, .chip, .btn { overflow-wrap: break-word; word-break: break-word; }
-  /* wrap wide tables in a horizontal scroller instead of breaking the page */
   .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
   @media (max-width: 640px) {
-    /* comfortable page gutters */
     body { padding-left: 14px; padding-right: 14px; }
     .app, .panel, .wrap, .container, main { max-width: 100% !important; }
-    /* tighten oversized card padding on phones */
     .panel { padding: 20px 16px !important; border-radius: 14px !important; }
-    /* fluid headings so they never overflow */
     h1 { font-size: clamp(24px, 7vw, 34px) !important; line-height: 1.12; }
     h2 { font-size: clamp(20px, 5.5vw, 26px) !important; }
     h3 { font-size: clamp(17px, 4.8vw, 21px) !important; }
-    /* single-column any multi-column grid */
     .missions, .mission-grid, .grid, [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
-    /* generous tap targets (Apple/Google guidance = 44px min) */
     .btn, button, .chip, a.card, .card-link, select { min-height: 44px; }
     .chip { padding: 11px 14px !important; font-size: 14px !important; }
     .btn, button { padding: 13px 18px !important; font-size: 15px !important; }
-    /* inputs at >=16px stop iOS from auto-zooming on focus */
     input, select, textarea { font-size: 16px !important; width: 100%; }
-    /* stack any flex header rows */
     .top, .mission-header, .score-hero, .app-header, header { flex-wrap: wrap; }
   }
   @media (max-width: 380px) {
     .panel { padding: 16px 12px !important; }
     .chip { font-size: 13.5px !important; }
   }
-
 </style>
 </head>
 <body>
@@ -87,8 +78,6 @@ input:focus{outline:none;border-color:var(--copper);}
   <p class="eyebrow">Instructor Only</p>
   <h1>Control Panel</h1>
   <p class="sub">Show, hide, and register classroom activities.</p>
-
-  <!-- PASSWORD GATE -->
   <div id="gate">
     <div class="panel">
       <h2>Enter Password</h2>
@@ -97,18 +86,15 @@ input:focus{outline:none;border-color:var(--copper);}
       <p class="msg err hidden" id="gateMsg">Incorrect password.</p>
     </div>
   </div>
-
-  <!-- MAIN PANEL -->
   <div id="main" class="hidden">
     <div class="panel">
       <h2>Quick Launch</h2>
       <p class="row-file" style="margin-bottom:14px;">Open these on the classroom screen during the session.</p>
       <div class="actions" style="margin-top:0;">
-        <a class="btn" href="projector.html" target="_blank" style="text-decoration:none;">📺 Projector / Live Mode</a>
-        <a class="btn btn-ghost" href="dashboard.html" target="_blank" style="text-decoration:none;">📊 Instructor Dashboard</a>
+        <a class="btn" href="projector.html" target="_blank" style="text-decoration:none;">&#128250; Projector / Live Mode</a>
+        <a class="btn btn-ghost" href="dashboard.html" target="_blank" style="text-decoration:none;">&#128202; Instructor Dashboard</a>
       </div>
     </div>
-
     <div class="panel">
       <h2>Activities</h2>
       <div id="list"><p class="loading">Loading&hellip;</p></div>
@@ -118,7 +104,11 @@ input:focus{outline:none;border-color:var(--copper);}
         <span class="msg" id="saveMsg"></span>
       </div>
     </div>
-
+    <div class="panel">
+      <h2>Practice Mode Links</h2>
+      <p class="row-file" style="margin-bottom:14px;">Share a <b>practice link</b> to let students retry freely &mdash; attempts are <b>NOT recorded</b> to the sheet and an amber "Practice Mode" banner shows. The normal link (from the student hub) stays graded and recorded.</p>
+      <div id="practiceList"><p class="loading">Loading&hellip;</p></div>
+    </div>
     <div class="panel">
       <h2>Add New Activity</h2>
       <label for="actName">Activity name</label>
@@ -133,123 +123,87 @@ input:focus{outline:none;border-color:var(--copper);}
     </div>
   </div>
 </div>
-
 <script>
-// ============ SETTINGS ============
 var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
-var PASSWORD   = "mmt2026";   // change this to your own password
-
+var PASSWORD   = "mmt2026";
 var activities = [];
-
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function $(id){ return document.getElementById(id); }
-
-// ---------- Password gate ----------
 function tryUnlock(){
   if($("pw").value === PASSWORD){
     $("gate").classList.add("hidden");
     $("main").classList.remove("hidden");
     loadConfig();
-  } else {
-    $("gateMsg").classList.remove("hidden");
-  }
+  } else { $("gateMsg").classList.remove("hidden"); }
 }
 $("unlockBtn").addEventListener("click", tryUnlock);
 $("pw").addEventListener("keydown", function(e){ if(e.key === "Enter") tryUnlock(); });
-
-// ---------- Render toggles ----------
 function renderList(){
   var box = $("list");
-  if(!activities.length){
-    box.innerHTML = '<p class="loading">No activities registered yet. Add one below.</p>';
-    return;
-  }
+  if(!activities.length){ box.innerHTML = '<p class="loading">No activities registered yet. Add one below.</p>'; renderPractice(); return; }
   var html = "";
   activities.forEach(function(a, i){
-    html += '<div class="row">' +
-              '<div>' +
-                '<div class="row-title">' + esc(a.name || a.file) + '</div>' +
-                '<div class="row-file">' + esc(a.file) + '</div>' +
-              '</div>' +
-              '<label class="switch">' +
-                '<input type="checkbox" data-i="' + i + '"' + (a.visible ? ' checked' : '') + '>' +
-                '<span class="slider"></span>' +
-              '</label>' +
-            '</div>';
+    html += '<div class="row"><div><div class="row-title">' + esc(a.name || a.file) + '</div><div class="row-file">' + esc(a.file) + '</div></div>' +
+      '<label class="switch"><input type="checkbox" data-i="' + i + '"' + (a.visible ? ' checked' : '') + '><span class="slider"></span></label></div>';
   });
   box.innerHTML = html;
   Array.prototype.forEach.call(box.querySelectorAll('input[type=checkbox]'), function(cb){
-    cb.addEventListener("change", function(){
-      activities[+cb.getAttribute("data-i")].visible = cb.checked;
+    cb.addEventListener("change", function(){ activities[+cb.getAttribute("data-i")].visible = cb.checked; });
+  });
+  renderPractice();
+}
+function baseUrl(){ return location.href.replace(/[^/]*$/, ""); }
+function renderPractice(){
+  var box = $("practiceList");
+  if(!activities.length){ box.innerHTML = '<p class="loading">No activities registered yet. Add one below.</p>'; return; }
+  var base = baseUrl();
+  var html = "";
+  activities.forEach(function(a){
+    var url = base + a.file + "?mode=practice";
+    html += '<div class="prow"><div><div class="row-title">' + esc(a.name || a.file) + '</div><div class="plink">' + esc(url) + '</div></div>' +
+      '<div class="pbtns"><a class="mini" href="' + esc(url) + '" target="_blank">Open</a>' +
+      '<button class="mini" data-url="' + esc(url) + '">Copy</button></div></div>';
+  });
+  box.innerHTML = html;
+  Array.prototype.forEach.call(box.querySelectorAll('button.mini'), function(b){
+    b.addEventListener("click", function(){
+      var u = b.getAttribute("data-url");
+      var done = function(){ b.textContent = "Copied ✓"; b.classList.add("copied"); setTimeout(function(){ b.textContent = "Copy"; b.classList.remove("copied"); }, 1600); };
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(done, function(){ prompt("Copy this link:", u); }); }
+      else { prompt("Copy this link:", u); }
     });
   });
 }
-
-// ---------- Load config ----------
 function loadConfig(){
   $("list").innerHTML = '<p class="loading">Loading&hellip;</p>';
-  fetch(SCRIPT_URL + "?action=getConfig")
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      activities = (data && data.activities) ? data.activities : [];
-      renderList();
-    })
-    .catch(function(){
-      $("list").innerHTML = '<p class="msg err">Could not reach the backend. Check the URL and try Reload.</p>';
-    });
+  fetch(SCRIPT_URL + "?action=getConfig").then(function(r){ return r.json(); })
+    .then(function(data){ activities = (data && data.activities) ? data.activities : []; renderList(); })
+    .catch(function(){ $("list").innerHTML = '<p class="msg err">Could not reach the backend. Check the URL and try Reload.</p>'; });
 }
-
-// ---------- Save toggles ----------
 function saveChanges(){
   var btn = $("saveBtn"), msg = $("saveMsg");
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
   var states = activities.map(function(a){ return { file: a.file, visible: !!a.visible }; });
-
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "saveConfig", states: states })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    btn.disabled = false;
-    if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Saved ✓"; }
-    else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Save failed."; }
-  })
-  .catch(function(){
-    btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error.";
-  });
+  fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "saveConfig", states: states }) })
+    .then(function(r){ return r.json(); })
+    .then(function(res){ btn.disabled = false;
+      if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Saved ✓"; }
+      else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Save failed."; } })
+    .catch(function(){ btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error."; });
 }
-
-// ---------- Add activity ----------
 function addActivity(){
-  var name = $("actName").value.trim();
-  var file = $("actFile").value.trim();
+  var name = $("actName").value.trim(); var file = $("actFile").value.trim();
   var btn = $("addBtn"), msg = $("addMsg");
-
   if(!name || !file){ msg.className = "msg err"; msg.textContent = "Name and file are required."; return; }
   if(!/\.html?$/i.test(file)){ msg.className = "msg err"; msg.textContent = "File should end in .html"; return; }
-
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Adding…";
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "addActivity", name: name, file: file })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    btn.disabled = false;
-    if(res && res.status === "success"){
-      msg.className = "msg ok"; msg.textContent = "Added ✓";
-      $("actName").value = ""; $("actFile").value = "";
-      loadConfig();
-    } else {
-      msg.className = "msg err"; msg.textContent = (res && res.message) || "Add failed.";
-    }
-  })
-  .catch(function(){
-    btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error.";
-  });
+  fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addActivity", name: name, file: file }) })
+    .then(function(r){ return r.json(); })
+    .then(function(res){ btn.disabled = false;
+      if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Added ✓"; $("actName").value = ""; $("actFile").value = ""; loadConfig(); }
+      else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Add failed."; } })
+    .catch(function(){ btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error."; });
 }
-
 $("saveBtn").addEventListener("click", saveChanges);
 $("reloadBtn").addEventListener("click", loadConfig);
 $("addBtn").addEventListener("click", addActivity);

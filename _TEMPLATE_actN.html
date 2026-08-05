@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Template</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--graphite);font-family:'Inter',sans-serif;min-height:100vh;padding:40px 16px;color:var(--ink);}
+.wrap{max-width:640px;margin:0 auto;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin-bottom:10px;}
+h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(24px,4vw,34px);margin-bottom:8px;}
+.sub{color:#B0C4CC;font-size:15px;margin-bottom:26px;}
+.panel{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.18);margin-bottom:18px;}
+.panel h2{font-family:'Fraunces',serif;font-size:19px;color:var(--ink);margin-bottom:16px;}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+input[type=text],select{width:100%;padding:12px 14px;border:1.5px solid #d8d4cc;border-radius:10px;font-family:inherit;font-size:15px;color:var(--ink);margin-bottom:14px;background:#fff;}
+input:focus,select:focus{outline:none;border-color:var(--copper);}
+.btn{background:var(--copper);color:#fff;border:none;border-radius:10px;padding:12px 22px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:filter .15s;}
+.btn:hover{filter:brightness(1.05);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.inst{font-size:13px;color:var(--muted);margin-bottom:8px;}
+.q{margin-bottom:22px;}
+.q-text{font-weight:600;font-size:16px;margin-bottom:12px;}
+.opt{display:block;width:100%;text-align:left;padding:12px 14px;border:1.5px solid #d8d4cc;border-radius:10px;background:#faf9f6;font-family:inherit;font-size:15px;color:var(--ink);cursor:pointer;margin-bottom:8px;transition:.12s;}
+.opt:hover{border-color:var(--copper);}
+.opt.sel{border-color:var(--copper);background:#fbf1e4;font-weight:600;}
+.warn-msg{color:#C0392B;font-size:13px;font-weight:600;margin-bottom:10px;}
+.hidden{display:none;}
+.result-score{font-family:'Fraunces',serif;font-size:40px;color:var(--copper);}
+.submit-status{font-size:13px;font-weight:600;margin-top:12px;}
+.submit-status.ok{color:var(--green);}
+.submit-status.warn{color:#C0392B;}
+.foot{color:#8FA6AE;font-size:12px;text-align:center;margin-top:8px;}
+
+  /* ============================================================
+     MOBILE-HARDENING (universal, appended) — v1
+     Fixes: horizontal overflow, small tap targets, font sizing,
+            spacing on narrow screens. Safe overrides.
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  img, svg, video, canvas, table { max-width: 100%; height: auto; }
+  /* long words / URLs shouldn't push the layout wide */
+  p, h1, h2, h3, li, td, th, .chip, .btn { overflow-wrap: break-word; word-break: break-word; }
+  /* wrap wide tables in a horizontal scroller instead of breaking the page */
+  .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 640px) {
+    /* comfortable page gutters */
+    body { padding-left: 14px; padding-right: 14px; }
+    .app, .panel, .wrap, .container, main { max-width: 100% !important; }
+    /* tighten oversized card padding on phones */
+    .panel { padding: 20px 16px !important; border-radius: 14px !important; }
+    /* fluid headings so they never overflow */
+    h1 { font-size: clamp(24px, 7vw, 34px) !important; line-height: 1.12; }
+    h2 { font-size: clamp(20px, 5.5vw, 26px) !important; }
+    h3 { font-size: clamp(17px, 4.8vw, 21px) !important; }
+    /* single-column any multi-column grid */
+    .missions, .mission-grid, .grid, [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+    /* generous tap targets (Apple/Google guidance = 44px min) */
+    .btn, button, .chip, a.card, .card-link, select { min-height: 44px; }
+    .chip { padding: 11px 14px !important; font-size: 14px !important; }
+    .btn, button { padding: 13px 18px !important; font-size: 15px !important; }
+    /* inputs at >=16px stop iOS from auto-zooming on focus */
+    input, select, textarea { font-size: 16px !important; width: 100%; }
+    /* stack any flex header rows */
+    .top, .mission-header, .score-hero, .app-header, header { flex-wrap: wrap; }
+  }
+  @media (max-width: 380px) {
+    .panel { padding: 16px 12px !important; }
+    .chip { font-size: 13.5px !important; }
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Interactive Classroom</p>
+  <h1 id="pageTitle">Activity Title</h1>
+  <p class="sub" id="pageSub">Short one-line description of the activity.</p>
+  <div id="app"></div>
+  <p class="foot">Rajarambapu Institute of Technology</p>
+</div>
+<script src="mmt-utils.js"></script>
+<script>
+/* ============================================================
+   PLUG-AND-PLAY ACTIVITY TEMPLATE
+   ------------------------------------------------------------
+   To make a new activity you only edit the 3 CONFIG blocks below:
+     1) META      – title, subtitle, game name, type
+     2) QUESTIONS – your questions + options + which is correct
+     3) (nothing else — scoring + result sending is automatic)
+
+   The webhook URL and college info are already baked in.
+   Save this file as act1.html / act2.html / ... in the deploy
+   folder, then register + reveal it from control.html.
+   ============================================================ */
+
+// ===== BACKEND (already wired — leave as is) =====
+const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+const DEPARTMENT   = "Robotics and Automation";
+
+// ===== SHARED LIBRARY (mmt-utils.js) with safe fallback =====
+// If mmt-utils.js is missing, these no-op stubs keep the activity working
+// (no hints, no practice mode) instead of crashing.
+const MMT = window.MMT || {
+  isPractice: () => false,
+  hintBlock: () => "",
+  toggleHint: () => {},
+  hintUsed: () => false,
+  resetHints: () => {},
+  applyHintPenalty: (m) => m,
+  hintTag: () => "",
+  modeBanner: () => null,
+};
+const PRACTICE = MMT.isPractice();
+
+// ===== 1) META — edit these =====
+const META = {
+  title: "Activity Title",                 // shown as the big heading
+  subtitle: "Short description here.",      // shown under the heading
+  game: "My New Activity",                  // label recorded in the results sheet
+  type: "Type B"                            // scoring type: see the guide (A–H)
+};
+
+// ===== 2) QUESTIONS — edit these =====
+// correct: the index (0-based) of the right option.
+// hint:    OPTIONAL. A one-line nudge (NOT the answer). If present, a
+//          "💡 Need a hint?" button appears. In graded mode, revealing a
+//          hint gives HALF marks for that question (and is tagged 💡 in the
+//          results sheet). In practice mode hints are free.
+const QUESTIONS = [
+  {
+    q: "Sample question 1 — which material is best for a lightweight structural part?",
+    options: ["Cast iron", "Aluminium alloy", "Lead", "Concrete"],
+    correct: 1,
+    hint: "Think about strength-to-weight ratio, not just raw strength."
+  },
+  {
+    q: "Sample question 2 — which property describes resistance to scratching?",
+    options: ["Ductility", "Hardness", "Toughness", "Density"],
+    correct: 1,
+    hint: "It's the property tested by pressing a hard indenter into the surface."
+  }
+];
+// ============================================================
+// Nothing below needs editing for a standard multiple-choice activity.
+// ============================================================
+
+document.getElementById("pageTitle").textContent = META.title;
+document.getElementById("pageSub").textContent   = META.subtitle;
+document.title = META.title;
+
+var state = { screen: "start", name: "", cls: "", prn: "", answers: [] };
+var app = document.getElementById("app");
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ---------- Result sending (matches the backend contract) ----------
+function submitResult(payload){
+  if(!SHEET_WEBHOOK_URL) return Promise.resolve({ sent:false });
+  return fetch(SHEET_WEBHOOK_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(function(){ return { sent:true }; }).catch(function(){ return { sent:false }; });
+}
+// ---------- Start screen (Name / Class / PRN gate) ----------
+function renderStart(){
+  app.innerHTML =
+    '<div class="panel">' +
+      '<h2>Before you begin</h2>' +
+      '<p class="inst">Enter your details, then start the activity.</p>' +
+      '<label for="nm">Your Full Name</label>' +
+      '<input type="text" id="nm" placeholder="e.g. Priya Sharma" value="' + esc(state.name) + '">' +
+      '<label for="cl">Class</label>' +
+      '<select id="cl">' +
+        '<option value=""' + (state.cls ? '' : ' selected') + ' disabled>Select your year…</option>' +
+        '<option value="FY"' + (state.cls==="FY" ? ' selected' : '') + '>FY — First Year</option>' +
+        '<option value="SY"' + (state.cls==="SY" ? ' selected' : '') + '>SY — Second Year</option>' +
+        '<option value="TY"' + (state.cls==="TY" ? ' selected' : '') + '>TY — Third Year</option>' +
+        '<option value="Final Year"' + (state.cls==="Final Year" ? ' selected' : '') + '>Final Year</option>' +
+      '</select>' +
+      '<label for="pr">PRN / Roll No.</label>' +
+      '<input type="text" id="pr" placeholder="e.g. 2023001234" value="' + esc(state.prn) + '">' +
+      '<p class="warn-msg hidden" id="warn">Please fill in Name, Class, and PRN before starting.</p>' +
+      '<button class="btn" id="startBtn">Start Activity</button>' +
+    '</div>';
+  var nm=document.getElementById("nm"), cl=document.getElementById("cl"), pr=document.getElementById("pr");
+  nm.oninput=function(){ state.name=nm.value; };
+  cl.onchange=function(){ state.cls=cl.value; };
+  pr.oninput=function(){ state.prn=pr.value; };
+  document.getElementById("startBtn").onclick=function(){
+    if(!state.name.trim() || !state.cls.trim() || !state.prn.trim()){
+      document.getElementById("warn").classList.remove("hidden"); return;
+    }
+    MMT.resetHints();
+    state.answers = new Array(QUESTIONS.length).fill(null);
+    state.screen="quiz"; renderQuiz();
+  };
+}
+
+// ---------- Quiz screen ----------
+function renderQuiz(){
+  var html = '<div class="panel">';
+  if (PRACTICE) html += '<div style="background:#FBF0DC;color:#9A6B1E;text-align:center;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;margin-bottom:14px;border:1px solid #E7C98A;">PRACTICE MODE — results are NOT recorded. Retry freely.</div>';
+  QUESTIONS.forEach(function(item, qi){
+    html += '<div class="q"><div class="q-text">' + (qi+1) + '. ' + esc(item.q) + '</div>';
+    item.options.forEach(function(opt, oi){
+      var sel = state.answers[qi] === oi ? ' sel' : '';
+      html += '<button class="opt' + sel + '" data-q="' + qi + '" data-o="' + oi + '">' + esc(opt) + '</button>';
+    });
+    html += MMT.hintBlock(qi, item.hint);
+    html += '</div>';
+  });
+  html += '<p class="warn-msg hidden" id="warn2">Please answer every question.</p>';
+  html += '<button class="btn" id="doneBtn">Submit Answers</button></div>';
+  app.innerHTML = html;
+
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"), function(b){
+    b.onclick=function(){
+      var qi=+b.getAttribute("data-q"), oi=+b.getAttribute("data-o");
+      state.answers[qi]=oi; renderQuiz();
+    };
+  });
+  document.getElementById("doneBtn").onclick=function(){
+    if(state.answers.some(function(a){ return a===null; })){
+      document.getElementById("warn2").classList.remove("hidden"); return;
+    }
+    finish();
+  };
+}
+
+// ---------- Finish: score, show result, send to sheet ----------
+function finish(){
+  var perQ = 10;                     // marks per correct answer (backend also scores from the marker)
+  var correctCount = 0;
+  var score = 0;
+  var details = QUESTIONS.map(function(item, qi){
+    var chosen = item.options[state.answers[qi]];
+    var ok = state.answers[qi] === item.correct;
+    if(ok) correctCount++;
+    // Raw marks for this question, then halve if a hint was used (graded only).
+    var raw = ok ? perQ : 0;
+    var used = MMT.hintUsed(qi);
+    score += MMT.applyHintPenalty(raw, used);
+    // The marker (✅ / ❌) is what the backend reads to award marks;
+    // the 💡 tag tells the backend to halve it (must match the score above).
+    return "Q" + (qi+1) + ": " + chosen + " " + (ok ? "✅ Correct" : "❌ Wrong") + MMT.hintTag(used);
+  }).join(" | ");
+
+  var max = QUESTIONS.length * perQ;
+  var pct = max ? Math.round(score / max * 100) : 0;
+
+  app.innerHTML =
+    '<div class="panel">' +
+      (PRACTICE ? '<div style="background:#FBF0DC;color:#9A6B1E;text-align:center;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;margin-bottom:14px;border:1px solid #E7C98A;">PRACTICE MODE — this attempt was NOT recorded.</div>' : '') +
+      '<h2>Nice work, ' + esc(state.name) + '!</h2>' +
+      '<div class="result-score">' + score + ' / ' + max + '</div>' +
+      '<p class="inst">' + correctCount + ' of ' + QUESTIONS.length + ' correct (' + pct + '%).</p>' +
+      '<p class="submit-status" id="submitStatus">Sending your result…</p>' +
+      '<button class="btn" id="againBtn" style="margin-top:10px;">Play Again</button>' +
+    '</div>';
+
+  document.getElementById("againBtn").onclick=function(){
+    MMT.resetHints();
+    state.screen="start"; state.answers=[]; renderStart();
+  };
+
+  var statusEl = document.getElementById("submitStatus");
+  if(PRACTICE){ statusEl.textContent="Practice mode — this attempt was NOT recorded."; statusEl.className="submit-status"; return; }
+  if(!SHEET_WEBHOOK_URL){ statusEl.textContent=""; return; }
+  submitResult({
+    game: META.game,
+    type: META.type,
+    college: COLLEGE_NAME,
+    department: DEPARTMENT,
+    studentClass: state.cls,
+    prn: state.prn,
+    name: state.name || "Anonymous",
+    round: META.game,
+    roundNumber: 1,
+    score: score,
+    max: max,
+    percent: pct,
+    details: details
+  }).then(function(res){
+    if(res.sent){ statusEl.textContent="✓ Result sent to your instructor"; statusEl.className="submit-status ok"; }
+    else { statusEl.textContent="⚠ Couldn't reach the results sheet — your instructor may not see this attempt"; statusEl.className="submit-status warn"; }
+  });
+}
+
+// ---------- Boot ----------
+renderStart();
+</script>
+<div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
+</body>
+</html>

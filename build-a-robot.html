@@ -305,6 +305,8 @@ const MMT = window.MMT || {
   isPractice: () => false,
   modeBanner: () => null,
   downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+  hintBlock: () => "", toggleHint: () => {}, hintUsed: () => false,
+  resetHints: () => {}, applyHintPenalty: (m) => m, hintTag: () => "",
 };
 if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
 const PRACTICE = MMT.isPractice();
@@ -336,15 +338,20 @@ const MISSIONS = [
     brief: "A ground vehicle that shuttles pallets around a warehouse floor all day. Battery life and payload capacity both matter — but it never leaves a dry, indoor building.",
     components: [
       { key:"chassis", label:"Chassis / Frame", ideal:"frp", acceptable:["mg"],
-        reason:"Every gram saved here becomes battery life or payload capacity — and indoors, there's no harsh corrosion to worry about." },
+        reason:"Every gram saved here becomes battery life or payload capacity — and indoors, there's no harsh corrosion to worry about.",
+        hint:"Indoors there's no corrosion risk — so the priority is saving weight for battery and payload." },
       { key:"arm", label:"Lifting Arm / Linkage", ideal:"hss", acceptable:["ahss"],
-        reason:"This is the textbook use case for High Strength Steel — proven and cost-effective for arms and linkages." },
+        reason:"This is the textbook use case for High Strength Steel — proven and cost-effective for arms and linkages.",
+        hint:"Think proven and cost-effective — the bread-and-butter choice for arms and linkages." },
       { key:"gripper", label:"Pallet Gripper", ideal:"uhss", acceptable:["hss"],
-        reason:"Material-handling grippers clamp heavy loads over and over — Ultra High Strength Steel's wear resistance earns its keep here." },
+        reason:"Material-handling grippers clamp heavy loads over and over — Ultra High Strength Steel's wear resistance earns its keep here.",
+        hint:"A gripper clamps heavy loads over and over — what matters is maximum wear resistance." },
       { key:"axle", label:"Load-Bearing Wheel Axle", ideal:"uhss", acceptable:["ahss"],
-        reason:"A constantly loaded, constantly rotating axle needs the highest wear resistance and load capacity on the table." },
+        reason:"A constantly loaded, constantly rotating axle needs the highest wear resistance and load capacity on the table.",
+        hint:"A constantly loaded, rotating part needs the highest wear resistance and load capacity available." },
       { key:"sensor", label:"Contact / Force Sensor", ideal:"piezo", acceptable:[],
-        reason:"Only a piezoelectric material converts contact force directly into a usable electrical signal." },
+        reason:"Only a piezoelectric material converts contact force directly into a usable electrical signal.",
+        hint:"Only one material turns contact force directly into an electrical signal." },
     ],
   },
   {
@@ -353,15 +360,20 @@ const MISSIONS = [
     brief: "A quadcopter that inspects power lines and pipelines from the air. Every gram of structural weight is stolen directly from flight time, and it must survive constant vibration.",
     components: [
       { key:"frame", label:"Frame / Body", ideal:"frp", acceptable:["mg"],
-        reason:"Flight time is won or lost by grams — FRP's extreme lightness beats every other structural option here." },
+        reason:"Flight time is won or lost by grams — FRP's extreme lightness beats every other structural option here.",
+        hint:"In flight, every gram is stolen from flight time — pick the lightest structural option." },
       { key:"arm", label:"Propeller Arm", ideal:"frp", acceptable:["mg"],
-        reason:"Propeller arms need to be stiff and light without adding rotational inertia — FRP is the standard answer." },
+        reason:"Propeller arms need to be stiff and light without adding rotational inertia — FRP is the standard answer.",
+        hint:"Propeller arms must be stiff and light without adding rotational inertia." },
       { key:"housing", label:"Camera Gimbal Housing", ideal:"mg", acceptable:["frp"],
-        reason:"Magnesium's thermal conductivity helps dissipate heat from the camera electronics while staying light." },
+        reason:"Magnesium's thermal conductivity helps dissipate heat from the camera electronics while staying light.",
+        hint:"The camera electronics get hot — you want a light metal that also sheds heat." },
       { key:"casing", label:"Protective Casing", ideal:"mg", acceptable:["frp"],
-        reason:"It needs to survive a hard landing without blowing the weight budget — magnesium balances protection and mass better than steel." },
+        reason:"It needs to survive a hard landing without blowing the weight budget — magnesium balances protection and mass better than steel.",
+        hint:"It must survive a hard landing without blowing the weight budget — balance protection and mass." },
       { key:"sensor", label:"Vibration Sensor", ideal:"piezo", acceptable:[],
-        reason:"Piezoelectric accelerometers are the standard way to sense vibration and flight instability in real time." },
+        reason:"Piezoelectric accelerometers are the standard way to sense vibration and flight instability in real time.",
+        hint:"Sensing vibration in real time points to one special material." },
     ],
   },
   {
@@ -370,15 +382,20 @@ const MISSIONS = [
     brief: "A precision robotic arm that assists a surgeon inside an operating room. It must be sterilizable, dependably precise, and extremely safe on contact with a person.",
     components: [
       { key:"arm", label:"Structural Arm", ideal:"hss", acceptable:["ahss"],
-        reason:"Precision surgical arms rely on High Strength Steel's proven, cost-effective performance." },
+        reason:"Precision surgical arms rely on High Strength Steel's proven, cost-effective performance.",
+        hint:"For a proven, dependable precision arm, go with the standard workhorse steel." },
       { key:"gripper", label:"Precision Gripper", ideal:"hss", acceptable:["uhss"],
-        reason:"A gripper handling delicate instruments needs dependable clamping strength without unnecessary bulk." },
+        reason:"A gripper handling delicate instruments needs dependable clamping strength without unnecessary bulk.",
+        hint:"Handling delicate instruments needs dependable strength without unnecessary bulk." },
       { key:"housing", label:"Protective Housing", ideal:"ahss", acceptable:["mg"],
-        reason:"Patient-facing housings need Advanced High Strength Steel's impact protection — not a place to gamble on a lighter, corrosion-prone metal." },
+        reason:"Patient-facing housings need Advanced High Strength Steel's impact protection — not a place to gamble on a lighter, corrosion-prone metal.",
+        hint:"A patient-facing housing needs impact protection — not a place to gamble on a light metal." },
       { key:"joint", label:"Load-Bearing Joint", ideal:"uhss", acceptable:["ahss"],
-        reason:"A joint under constant, precise load benefits from Ultra High Strength Steel's superior wear resistance." },
+        reason:"A joint under constant, precise load benefits from Ultra High Strength Steel's superior wear resistance.",
+        hint:"A joint under constant, precise load wants the highest wear resistance." },
       { key:"sensor", label:"Contact Force Sensor", ideal:"piezo", acceptable:[],
-        reason:"Safe human contact depends on sensing force in real time — exactly what a piezoelectric sensor is built for." },
+        reason:"Safe human contact depends on sensing force in real time — exactly what a piezoelectric sensor is built for.",
+        hint:"Safe human contact depends on sensing force in real time — one material does that." },
     ],
   },
 ];
@@ -459,6 +476,7 @@ function renderStart(){
     state.missionIndex = 0;
     state.choices = {};
     state.missionScores = [];
+    MMT.resetHints();
     render();
   });
   return wrap;
@@ -542,8 +560,11 @@ function renderMission(){
     const compEl = el(`<div class="component ${chosen ? 'filled':''}">
       <div class="component-label"><span class="num">${idx+1}</span> ${c.label}</div>
       <div class="chips"></div>
+      <div class="hint-slot"></div>
     </div>`);
     const chipsWrap = compEl.querySelector(".chips");
+    const hintSlot = compEl.querySelector(".hint-slot");
+    if (c.hint) hintSlot.innerHTML = MMT.hintBlock('br'+c.key, c.hint);
     // Anti-copying: shuffle option order per component, stored so it's stable
     // across re-renders within this mission (re-randomizes each new attempt).
     state._optOrder = state._optOrder || {};
@@ -599,8 +620,10 @@ function scoreMission(mission){
       }
       text = mismatch;
     }
+    const used = MMT.hintUsed('br'+c.key);
+    pts = MMT.applyHintPenalty(pts, used);
     score += pts;
-    results.push({ label:c.label, chosen:mat.name, tier, text });
+    results.push({ label:c.label, chosen:mat.name, tier, text, tag: MMT.hintTag(used) });
   });
   return { score, max: mission.components.length*20, results };
 }
@@ -658,7 +681,7 @@ function renderResults(){
       mission: mission.name,
       missionNumber: state.missionIndex + 1,
       score, max, percent: pct,
-      details: results.map(r => `${r.label}: ${r.chosen} (${r.tier})`).join(" | "),
+      details: results.map(r => `${r.label}: ${r.chosen} (${r.tier})${r.tag || ""}`).join(" | "),
     }).then(res => {
       if (res.sent) {
         statusEl.textContent = "✓ Result sent to your instructor";
@@ -691,6 +714,7 @@ function renderResults(){
   if (retryBtn) retryBtn.addEventListener("click", () => {
     state.choices = {};
     state._optOrder = {};   // reshuffle options on retry
+    MMT.resetHints();
     state.screen = "mission";
     render();
   });
@@ -703,6 +727,7 @@ function renderResults(){
       state.missionIndex += 1;
       state.choices = {};
       state._optOrder = {};   // fresh option shuffle for the next mission
+      MMT.resetHints();
       state.screen = "mission";
     }
     render();

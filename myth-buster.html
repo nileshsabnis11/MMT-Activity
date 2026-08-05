@@ -138,6 +138,12 @@
           isPractice: () => false,
           modeBanner: () => null,
           downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+          hintBlock: () => "",
+          toggleHint: () => {},
+          hintUsed: () => false,
+          resetHints: () => {},
+          applyHintPenalty: (m) => m,
+          hintTag: () => "",
         };
         if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
         const PRACTICE = MMT.isPractice();
@@ -149,19 +155,22 @@
                 intro: "Evaluate these statements regarding atomic arrangements and the fundamental building blocks of materials.",
                 statements: [
                     { 
-                        text: "A lattice and a crystal structure are exactly the same thing.", 
-                        answer: "False", 
-                        why: "According to L2, a lattice is just an infinite grid of empty positions. Crystal Structure = Lattice + Motif (the actual atoms sitting on the points)." 
+                        text: "A lattice and a crystal structure are exactly the same thing.",
+                        answer: "False",
+                        why: "According to L2, a lattice is just an infinite grid of empty positions. Crystal Structure = Lattice + Motif (the actual atoms sitting on the points).",
+                        hint: "One of these is just empty positions; the other adds the atoms on top."
                     },
                     { 
-                        text: "Amorphous solids, like glass, possess long-range geometric order.", 
-                        answer: "False", 
-                        why: "Amorphous solids have no long-range order. Only crystalline solids have a repeating pattern that extends over long distances." 
+                        text: "Amorphous solids, like glass, possess long-range geometric order.",
+                        answer: "False",
+                        why: "Amorphous solids have no long-range order. Only crystalline solids have a repeating pattern that extends over long distances.",
+                        hint: "Does glass repeat the same pattern over long distances?"
                     },
                     { 
-                        text: "Nature favors atomic arrangements that minimize the total energy per unit volume.", 
-                        answer: "True", 
-                        why: "Atoms settle into positions that perfectly balance attractive and repulsive forces, sitting at the minimum of the energy curve." 
+                        text: "Nature favors atomic arrangements that minimize the total energy per unit volume.",
+                        answer: "True",
+                        why: "Atoms settle into positions that perfectly balance attractive and repulsive forces, sitting at the minimum of the energy curve.",
+                        hint: "Lower energy arrangements are more stable — nature prefers stability."
                     }
                 ]
             },
@@ -170,19 +179,22 @@
                 intro: "Assess these claims about SC, BCC, FCC, and HCP structures.",
                 statements: [
                     { 
-                        text: "In a Body-Centred Cubic (BCC) unit cell, there are exactly 9 whole atoms belonging to that cell.", 
-                        answer: "False", 
-                        why: "There is 1 atom at the body center, and 8 corner atoms. However, corner atoms are shared by 8 cells. N = (8 * 1/8) + 1 = 2 average atoms per cell." 
+                        text: "In a Body-Centred Cubic (BCC) unit cell, there are exactly 9 whole atoms belonging to that cell.",
+                        answer: "False",
+                        why: "There is 1 atom at the body center, and 8 corner atoms. However, corner atoms are shared by 8 cells. N = (8 * 1/8) + 1 = 2 average atoms per cell.",
+                        hint: "Corner atoms are shared — count how many cells each corner touches."
                     },
                     { 
-                        text: "Face-Centred Cubic (FCC) and Hexagonal Close-Packed (HCP) both achieve the maximum 74% atomic packing factor.", 
-                        answer: "True", 
-                        why: "Both structures have an APF of 0.74 and a coordination number of 12, making them the most efficiently packed structures in nature." 
+                        text: "Face-Centred Cubic (FCC) and Hexagonal Close-Packed (HCP) both achieve the maximum 74% atomic packing factor.",
+                        answer: "True",
+                        why: "Both structures have an APF of 0.74 and a coordination number of 12, making them the most efficiently packed structures in nature.",
+                        hint: "These are the two most densely packed crystal structures — think about coordination number 12."
                     },
                     { 
-                        text: "For a Simple Cubic (SC) structure, atoms touch along the body diagonal.", 
-                        answer: "False", 
-                        why: "In SC, atoms touch along the cube edge (a = 2r). Atoms touch along the body diagonal in BCC (a√3 = 4r)." 
+                        text: "For a Simple Cubic (SC) structure, atoms touch along the body diagonal.",
+                        answer: "False",
+                        why: "In SC, atoms touch along the cube edge (a = 2r). Atoms touch along the body diagonal in BCC (a√3 = 4r).",
+                        hint: "Which structure uses the body diagonal for touching — SC or BCC?"
                     }
                 ]
             },
@@ -191,19 +203,22 @@
                 intro: "Determine the truth of these statements regarding mechanical, thermal, and magnetic behavior.",
                 statements: [
                     { 
-                        text: "FCC metals like aluminum are highly ductile primarily because they have many available slip systems.", 
-                        answer: "True", 
-                        why: "L3 states that ductility depends on slip systems. FCC's symmetric, close-packed structure provides many equivalent directions for atomic planes to slip past one another." 
+                        text: "FCC metals like aluminum are highly ductile primarily because they have many available slip systems.",
+                        answer: "True",
+                        why: "L3 states that ductility depends on slip systems. FCC's symmetric, close-packed structure provides many equivalent directions for atomic planes to slip past one another.",
+                        hint: "Ductility comes from planes sliding — more slip systems means more sliding."
                     },
                     { 
-                        text: "Heating BCC iron above 912°C changes its structure to FCC, which makes it an even stronger magnet.", 
-                        answer: "False", 
-                        why: "L3 specifically notes that when iron transforms from BCC (ferrite) to FCC (austenite), it LOSES its strong ferromagnetic ordering due to the change in interatomic spacing." 
+                        text: "Heating BCC iron above 912°C changes its structure to FCC, which makes it an even stronger magnet.",
+                        answer: "False",
+                        why: "L3 specifically notes that when iron transforms from BCC (ferrite) to FCC (austenite), it LOSES its strong ferromagnetic ordering due to the change in interatomic spacing.",
+                        hint: "The structure change is real — but does going to austenite help or hurt magnetism?"
                     },
                     { 
-                        text: "High thermal conductivity in metals is caused entirely by lattice vibrations (phonons).", 
-                        answer: "Partially True", 
-                        why: "While lattice vibrations (phonons) carry heat in all solids, L3 notes that free electrons are the DOMINANT mechanism for heat transfer in metals." 
+                        text: "High thermal conductivity in metals is caused entirely by lattice vibrations (phonons).",
+                        answer: "Partially True",
+                        why: "While lattice vibrations (phonons) carry heat in all solids, L3 notes that free electrons are the DOMINANT mechanism for heat transfer in metals.",
+                        hint: "Metals conduct both electricity and heat well — that points to the main carrier."
                     }
                 ]
             }
@@ -238,11 +253,13 @@
 
             round.statements.forEach((stmt, idx) => {
                 const userChoice = state.judgments[idx];
+                const used = MMT.hintUsed('mb'+idx);
+                const tag = MMT.hintTag(used);
                 if (userChoice === stmt.answer) {
-                    score += 10;
-                    detailsArr.push(`[Q${idx+1}]: Correct`);
+                    score += MMT.applyHintPenalty(10, used);
+                    detailsArr.push(`[Q${idx+1}]: Correct${tag}`);
                 } else {
-                    detailsArr.push(`[Q${idx+1}]: Wrong (Chose: ${userChoice})`);
+                    detailsArr.push(`[Q${idx+1}]: Wrong (Chose: ${userChoice})${tag}`);
                 }
             });
 
@@ -300,6 +317,7 @@
             state.studentName = name;
             state.studentClass = cls;
             state.prn = prn;
+            MMT.resetHints();
             state.screen = "task";
             render();
         }
@@ -312,6 +330,7 @@
         function retryRound() {
             state.roundScores.pop();                 // drop this practice attempt's score
             state.judgments = {};
+            MMT.resetHints();
             if (state._stmtOrder) delete state._stmtOrder[state.roundIndex];   // reshuffle
             state.submitStatus = null;
             state.screen = "task";
@@ -384,6 +403,7 @@
                             <div class="chip ${sel === 'False' ? 'sel-false' : ''}" onclick="selectJudgment(${idx}, 'False')">False</div>
                             <div class="chip ${sel === 'Partially True' ? 'sel-partially' : ''}" onclick="selectJudgment(${idx}, 'Partially True')">Partially True</div>
                         </div>
+                        ${MMT.hintBlock('mb'+idx, stmt.hint)}
                     </div>
                 `;
             }).join('');
@@ -454,6 +474,7 @@
                     <button class="btn-primary" onclick="
                         state.roundIndex++;
                         state.judgments = {};
+                        MMT.resetHints();
                         if(state.roundIndex >= ROUNDS.length) state.screen = 'final';
                         else state.screen = 'task';
                         render();

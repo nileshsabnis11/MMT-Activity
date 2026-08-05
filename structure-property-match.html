@@ -140,6 +140,8 @@
           isPractice: () => false,
           modeBanner: () => null,
           downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+          hintBlock: () => "", toggleHint: () => {}, hintUsed: () => false,
+          resetHints: () => {}, applyHintPenalty: (m) => m, hintTag: () => "",
         };
         if (window.MMT) window.MMT._autoFlushUrl = SHEET_WEBHOOK_URL;   // resend queued results on load
         const PRACTICE = MMT.isPractice();
@@ -148,6 +150,7 @@
             {
                 name: "Round 1: Crystal Geometries & Packing",
                 intro: "Select an item on the left, then click the correct matching description on the right. Based on L2 notes.",
+                hint: "Packing efficiency rises SC → BCC → FCC (52% → 68% → 74%); CN goes 6 → 8 → 12. 'Lattice' = geometry only; 'Coordination Number' = touching neighbours.",
                 pairs: [
                     { left: "Simple Cubic (SC)", right: "N=1 atom/cell, APF=52%, CN=6", why: "SC is the least efficient packing structure. Atoms occupy only the 8 corners (8 * 1/8 = 1)." },
                     { left: "Body-Centred Cubic (BCC)", right: "N=2 atoms/cell, APF=68%, CN=8", why: "BCC adds one atom at the geometric center, improving packing efficiency over SC. Example: alpha-Iron." },
@@ -159,6 +162,7 @@
             {
                 name: "Round 2: Core Material Properties",
                 intro: "Match the engineering property with its exact definition from the L3 notes.",
+                hint: "Stiffness→Young's Modulus; plastic deformation before fracture→Ductility; size change with heat→Thermal Expansion; max temperature/bond strength→Melting Point; ease of carrying current→Electrical Conductivity.",
                 pairs: [
                     { left: "Young's Modulus", right: "Resistance to elastic deformation (Stiffness)", why: "It is the ratio of stress to strain in the elastic region, driven mostly by interatomic bond strength." },
                     { left: "Ductility", right: "Ability to deform plastically before fracturing", why: "Often expressed as % elongation. FCC metals excel here due to multiple active slip systems." },
@@ -170,6 +174,7 @@
             {
                 name: "Round 3: Robotics Applications",
                 intro: "Match the material structure/property to its specific robotic use case from L3.",
+                hint: "Match by the standout trait: ductile/light FCC→arm links; strong BCC steel→gears/shafts; strength-to-weight HCP Ti→aerospace limbs; high conductivity Cu→heat sinks; low expansion Invar→precision joints.",
                 pairs: [
                     { left: "FCC Metals (e.g., Aluminium)", right: "Robot arm links & casings needing formability", why: "Their high ductility and low density make them ideal for lightweight structural members that resist sudden fracture." },
                     { left: "BCC Alloy Steels", right: "Drivetrain gears & shafts needing high strength", why: "Strong and wear-resistant, suited to load-bearing components that must resist deformation under cyclic torque." },
@@ -209,6 +214,7 @@
         function initRound() {
             state.activeLeft = null;
             state.matches = {};
+            MMT.resetHints();
             const round = ROUNDS[state.roundIndex];
             state.shuffledRight = MMT.shuffle(round.pairs.map(p => p.right));   // anti-copying
             state.shuffledLeft = MMT.shuffle(round.pairs);   // anti-copying: randomize left order too
@@ -235,13 +241,15 @@
             const max = round.pairs.length * 10;
             let detailsArr = [];
 
+            const used = MMT.hintUsed('spm'+state.roundIndex);
+            const tag = MMT.hintTag(used);
             round.pairs.forEach((pair) => {
                 const userMatch = state.matches[pair.left];
                 if (userMatch === pair.right) {
-                    score += 10;
-                    detailsArr.push(`[${pair.left}]: Correct`);
+                    score += MMT.applyHintPenalty(10, used);
+                    detailsArr.push(`[${pair.left}]: Correct${tag}`);
                 } else {
-                    detailsArr.push(`[${pair.left}]: Wrong (Chose: ${userMatch})`);
+                    detailsArr.push(`[${pair.left}]: Wrong (Chose: ${userMatch})${tag}`);
                 }
             });
 
@@ -402,6 +410,7 @@
                 </div>
                 <div class="content">
                     ${banner}
+                    ${MMT.hintBlock('spm'+state.roundIndex, round.hint)}
                     <div class="match-container">
                         <div class="left-col">${leftHTML}</div>
                         <div class="right-col">${rightHTML}</div>

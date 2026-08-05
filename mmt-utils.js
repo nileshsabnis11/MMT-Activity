@@ -252,6 +252,87 @@
     } catch (e) { /* ignore */ }
   }
 
+  /* ---------- 5. HINT MODE ---------- */
+  // Behaviour:
+  //   practice mode  -> hints are FREE (nothing recorded anyway)
+  //   graded mode    -> using a hint HALVES that question's marks (floor)
+  //                     and tags the detail string with 💡 so the sheet +
+  //                     dashboard can show "answered with hint".
+  // Usage in an activity:
+  //   1. Give a question a hint string:  {q:"...", options:[...], correct:1, hint:"Think about ..."}
+  //   2. Render MMT.hintBlock(qIndex, question.hint) under the question.
+  //   3. On finish, for each question: marks = MMT.applyHintPenalty(rawMarks, MMT.hintUsed(qIndex));
+  //      and append MMT.hintTag(MMT.hintUsed(qIndex)) to that question's detail string.
+  //   4. Call MMT.resetHints() when a fresh attempt starts (e.g. Play Again / retry).
+
+  var HINT_TAG = "💡";
+  var _hintsUsed = {};
+
+  // Returns HTML for a tap-to-reveal hint. Safe to inject via innerHTML.
+  // qIndex identifies the question so we can remember which hints were used.
+  function hintBlock(qIndex, hintText) {
+    if (!hintText) return "";
+    var id = "mmtHint_" + qIndex;
+    var graded = !isPractice();
+    var penaltyNote = !graded ? "" :
+      '<div style="margin-top:6px;font-weight:700;font-size:12px;color:#9A6B1E;">Using this hint gives half marks for this question.</div>';
+    // Up-front warning shown BEFORE the student clicks, so the cost is clear.
+    var upfrontNote = !graded ? "" :
+      '<span class="mmt-hint-warn" style="margin-left:10px;font-weight:600;font-size:12px;' +
+        'color:#B4791F;vertical-align:middle;">⚠ Reveals cost half marks for this question</span>';
+    return '' +
+      '<div class="mmt-hint" style="margin:8px 0 4px;">' +
+        '<button type="button" class="mmt-hint-btn" ' +
+          'style="background:transparent;border:1px dashed #D98E3B;color:#9A6B1E;' +
+          'font:600 13px/1.2 inherit;padding:7px 12px;border-radius:8px;cursor:pointer;" ' +
+          'onclick="MMT.toggleHint(\'' + String(qIndex).replace(/'/g,"\\'") + '\')">💡 Need a hint?</button>' +
+        upfrontNote +
+        '<div id="' + id + '" class="mmt-hint-text" style="display:none;margin-top:8px;' +
+          'background:#FBF0DC;border:1px solid #E7C98A;color:#7a5312;border-radius:8px;' +
+          'padding:10px 12px;font-size:13.5px;line-height:1.45;">' +
+          '<span style="opacity:.9;">' + escHtml(hintText) + '</span>' +
+          penaltyNote +
+        '</div>' +
+      '</div>';
+  }
+
+  function escHtml(s){ var d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+  // Reveals the hint text and records that this question's hint was used.
+  function toggleHint(qIndex) {
+    var el = document.getElementById("mmtHint_" + qIndex);
+    if (el) el.style.display = "block";
+    _hintsUsed[qIndex] = true;
+    var wrap = el && el.parentNode;
+    var btn = wrap && wrap.querySelector(".mmt-hint-btn");
+    if (btn) {
+      btn.textContent = "💡 Hint shown";
+      btn.style.opacity = "0.7";
+      btn.disabled = true;
+    }
+    // The up-front "costs half marks" warning is redundant once revealed.
+    var warn = wrap && wrap.querySelector(".mmt-hint-warn");
+    if (warn) warn.style.display = "none";
+  }
+
+  function hintUsed(qIndex) { return !!_hintsUsed[qIndex]; }
+  function resetHints() { _hintsUsed = {}; }
+
+  // Half marks (floor) in graded mode when a hint was used. Free in practice.
+  // Non-numeric marks (e.g. "") are returned unchanged.
+  function applyHintPenalty(marks, used) {
+    if (!used || isPractice()) return marks;
+    var n = Number(marks);
+    if (isNaN(n)) return marks;
+    return Math.floor(n / 2);
+  }
+
+  // Returns " 💡" to append to a detail string when a hint was used in graded
+  // mode (so the backend halves it and the sheet shows the tag). Empty otherwise.
+  function hintTag(used) {
+    return (used && !isPractice()) ? " " + HINT_TAG : "";
+  }
+
   window.MMT = {
     shuffle: shuffle,
     pickPool: pickPool,
@@ -262,6 +343,14 @@
     isPractice: isPractice,
     modeBanner: modeBanner,
     downloadReportCard: downloadReportCard,
+    // hint mode
+    hintBlock: hintBlock,
+    toggleHint: toggleHint,
+    hintUsed: hintUsed,
+    resetHints: resetHints,
+    applyHintPenalty: applyHintPenalty,
+    hintTag: hintTag,
+    HINT_TAG: HINT_TAG,
     // set MMT._autoFlushUrl = SHEET_WEBHOOK_URL in your activity to auto-flush on load
     _autoFlushUrl: null,
   };
