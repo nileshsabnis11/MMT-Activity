@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casting Process Builder</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+  
+  <!-- Firebase for Database -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="mmt-utils.js"></script>
+
+  <style>
+    :root {
+      --graphite:#1C2B33; --graphite2:#142027; --steel:#3E5C67; --steel-light:#E3EAEC;
+      --copper:#D98E3B; --copper-light:#F6E4C8; --robot-blue:#2A5C7A; --robot-blue-light:#DCEAF1;
+      --ink:#23343C; --muted:#5C7079; --card:#F4F2EE; --white:#FFFFFF;
+      --good:#3E7A52; --good-bg:#E7F3EA; --warn:#9A6B1E; --warn-bg:#FBF0DC;
+      --bad:#A23B3B; --bad-bg:#FBEAEA;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+      background: var(--graphite); color: var(--ink); font-family: 'Inter', sans-serif;
+      padding: 20px;
+    }
+
+    .app-container { width: 100%; max-width: 850px; flex-grow: 1; display: flex; flex-direction: column; }
+    .panel { background: var(--white); border-radius: 18px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); margin-bottom: 20px; }
+    
+    h1, h2, h3 { font-family: 'Fraunces', serif; color: var(--graphite); }
+    h1 { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+    h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    p { line-height: 1.6; color: var(--muted); margin-bottom: 16px; }
+
+    .eyebrow { color: var(--copper); font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+
+    .name-gate { background: var(--robot-blue-light); padding: 24px; border-radius: 12px; margin-bottom: 24px; }
+    .input-group { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    input, select { 
+      flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid var(--steel-light); 
+      border-radius: 8px; font-family: inherit; font-size: 15px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--robot-blue); box-shadow: 0 0 0 3px rgba(42,92,122,0.1); }
+    .error-msg { color: var(--bad); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: none; }
+
+    .btn-primary { 
+      background: var(--copper); color: white; border: none; padding: 14px 24px; 
+      font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; 
+      transition: opacity 0.2s; font-family: inherit;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { background: var(--muted); opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--muted); }
+    .btn-ghost:hover { background: var(--steel-light); color: var(--ink); }
+
+    .flow-container { border-left: 3px solid var(--steel-light); margin-left: 20px; padding-left: 24px; position: relative; margin-bottom: 32px; }
+    .step-card { 
+      background: var(--white); border: 1px solid var(--steel-light); border-radius: 8px; 
+      padding: 16px; margin-bottom: 16px; position: relative; font-weight: 500; font-size: 15px;
+    }
+    .step-card::before {
+      content: attr(data-step); position: absolute; left: -40px; top: 16px;
+      width: 28px; height: 28px; background: var(--robot-blue); color: white;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px;
+    }
+    .step-card.blank { 
+      border: 2px dashed var(--muted); background: var(--card); color: var(--muted); 
+      cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    }
+    .step-card.blank.active { border-color: var(--copper); background: var(--copper-light); color: var(--ink); }
+    .step-card.filled { border: 2px solid var(--robot-blue); background: var(--robot-blue-light); color: var(--ink); font-weight: 600; cursor: pointer; }
+
+    .pool-area { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 24px; }
+    .pool-title { font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; }
+    .chip-grid { display: flex; flex-direction: column; gap: 10px; }
+    .chip { 
+      background: var(--white); border: 1px solid var(--steel-light); padding: 12px 16px; 
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; 
+      text-align: left; transition: all 0.2s; color: var(--ink);
+    }
+    .chip:hover { border-color: var(--robot-blue); }
+    .chip.used { opacity: 0.4; pointer-events: none; background: transparent; border-style: dashed; }
+
+    .result-card { border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 15px; line-height:1.5; }
+    .result-card.good { background: var(--good-bg); color: #1f452b; border: 1px solid #C3DFC9; }
+    .result-card.bad { background: var(--bad-bg); color: #5a1919; border: 1px solid #E8C9C9; }
+    
+    .score-hero { text-align: center; margin: 40px 0; }
+    .score-badge { display: inline-flex; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 60px; background: var(--graphite); color: var(--white); font-size: 32px; font-weight: 800; font-family: 'Fraunces', serif; margin-bottom: 16px; }
+    
+    .submit-status { font-size: 14px; text-align: center; margin-top: 16px; font-weight: 500; }
+    .submit-status.ok { color: var(--good); }
+    .submit-status.warn { color: var(--warn); }
+    
+    .hidden { display: none !important; }
+    .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--steel-light); }
+    .flex-actions { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+
+    /* ===== MOBILE-HARDENING (paste in every activity) ===== */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    img, svg, video, canvas, table { max-width: 100%; height: auto; }
+    p, h1, h2, h3, li, td, th, .chip, .btn { overflow-wrap: break-word; word-break: break-word; }
+    .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    @media (max-width: 640px) {
+      body { padding-left: 14px; padding-right: 14px; }
+      .app-container, .panel { max-width: 100% !important; }
+      .panel { padding: 20px 16px !important; border-radius: 14px !important; }
+      h1 { font-size: clamp(24px, 7vw, 34px) !important; line-height: 1.12; }
+      h2 { font-size: clamp(20px, 5.5vw, 26px) !important; }
+      h3 { font-size: clamp(17px, 4.8vw, 21px) !important; }
+      .btn-primary, button, .chip, select { min-height: 44px; }
+      .chip { padding: 11px 14px !important; font-size: 14px !important; }
+      input, select { font-size: 16px !important; width: 100%; }
+      .action-bar { flex-direction: column; gap: 16px; align-items: stretch; text-align: center; }
+      .flex-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="panel" id="app"></div>
+  </div>
+  <div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
+
+  <script>
+    const MMT = window.MMT || {
+      shuffle: a => a.slice(), pickPool: (a,n) => a.slice(0,n),
+      submitResult: (db, payload) => Promise.resolve({sent:false, reason:"missing utils"}),
+      isPractice: () => false, modeBanner: () => null,
+      downloadReportCard: () => alert("Report card needs mmt-utils.js to be loaded."),
+      hintBlock: () => "", toggleHint: () => {}, hintUsed: () => false,
+      resetHints: () => {}, applyHintPenalty: (m) => m, hintTag: () => "",
+      markStart: () => {}, getTimeTaken: () => null, fmtTime: () => '—',
+      startTimer: (cb) => {}, getTimerSeconds: () => 0,
+      renderBadge: (pct) => "",
+    };
+
+    const COLLEGE_NAME = "Rajarambapu Institute of Technology";
+    const DEPARTMENT   = "Robotics and Automation";
+    const DB_ENABLED   = true;
+
+    if (window.MMT) window.MMT._autoFlushUrl = DB_ENABLED;
+    const PRACTICE = MMT.isPractice();
+
+    const PROCESSES = [
+      {
+        name: "Process 1: Sand Casting",
+        intro: "Construct the 5-step workflow for the most basic workhorse casting method.",
+        hint: "You have to build the mold cavity *before* you can melt anything.",
+        steps: [
+          { text: "Pattern Making: A replica is made using tools.", isBlank: false },
+          { text: null, isBlank: true, answer: "Molding & Core Making: Packing sand around the pattern.", why: "The sand is packed to hold its shape when the pattern is removed." },
+          { text: null, isBlank: true, answer: "Melting & Pouring: Metal is poured into the cavity.", why: "Once the cavity is ready, liquid metal fills it." },
+          { text: "Cleaning: Casting is removed, runners/risers cut away.", isBlank: false },
+          { text: null, isBlank: true, answer: "Testing: Inspected for internal or surface defects.", why: "Final validation happens before the part ships." }
+        ],
+        pool: [
+          "Molding & Core Making: Packing sand around the pattern.",
+          "Melting & Pouring: Metal is poured into the cavity.",
+          "Testing: Inspected for internal or surface defects.",
+          "Dewaxing: Melting out the inner pattern.",
+          "Centrifugal Spin: Rotating the flask."
+        ]
+      },
+      {
+        name: "Process 2: Investment Casting",
+        intro: "Build the precise 'Lost-Wax' process sequence.",
+        hint: "The wax pattern has to be removed completely before pouring. How is that done?",
+        steps: [
+          { text: "Pattern Creation: Exact replica made in wax.", isBlank: false },
+          { text: null, isBlank: true, answer: "Shell Building: Coating pattern in ceramic slurry.", why: "The ceramic slurry builds a tough, heat-resistant shell." },
+          { text: null, isBlank: true, answer: "Mold Heating: Wax melts out, shell is strengthened.", why: "Heating 'loses' the wax and bakes the ceramic." },
+          { text: "Metal Pouring: Filling the hollow ceramic shell.", isBlank: false },
+          { text: null, isBlank: true, answer: "Shell Removal: Breaking the ceramic to reveal the part.", why: "Since it's an expendable mold, the ceramic is destroyed." },
+          { text: "Finishing: Machining to final shape.", isBlank: false }
+        ],
+        pool: [
+          "Shell Building: Coating pattern in ceramic slurry.",
+          "Mold Heating: Wax melts out, shell is strengthened.",
+          "Shell Removal: Breaking the ceramic to reveal the part.",
+          "EPS Vaporization: Metal destroys the pattern instantly.",
+          "Parting Line Extraction: Opening the metal cope and drag."
+        ]
+      },
+      {
+        name: "Process 3: Centrifugal Casting",
+        intro: "Construct the workflow for spinning dense cylindrical parts.",
+        hint: "Notice that there is no 'gating system creation' here.",
+        steps: [
+          { text: null, isBlank: true, answer: "Mold Coating: Applying refractory ceramic slurry to walls.", why: "The permanent metal mold needs a protective ceramic layer." },
+          { text: "Metal Pouring: Direct into mold via spout (no gates).", isBlank: false },
+          { text: null, isBlank: true, answer: "Rotation Begins: Spinning the mold rapidly.", why: "Rotation generates the centrifugal force needed to shape the part." },
+          { text: null, isBlank: true, answer: "Centrifugal Distribution: Metal packs densely against outer wall.", why: "Force pushes dense metal out and lighter impurities inward." },
+          { text: "Removal: Mold stopped, opened, part removed.", isBlank: false }
+        ],
+        pool: [
+          "Mold Coating: Applying refractory ceramic slurry to walls.",
+          "Rotation Begins: Spinning the mold rapidly.",
+          "Centrifugal Distribution: Metal packs densely against outer wall.",
+          "Plaster Curing: Baking the mold to remove moisture.",
+          "Riser Feeding: Extra metal flows down to prevent shrinkage."
+        ]
+      }
+    ];
+
+    let state = {
+      screen: "start", processIndex: 0, studentName: "", studentClass: "", prn: "",
+      filledSteps: {}, processScores: [], activeBlank: null, shuffledPool: []
+    };
+
+    const app = document.getElementById("app");
+
+    function setupCurrentProcess() {
+      const p = PROCESSES[state.processIndex];
+      state.filledSteps = {};
+      state.activeBlank = p.steps.findIndex(s => s.isBlank);
+      state.shuffledPool = MMT.shuffle(p.pool);
+    }
+
+    function render() {
+      app.innerHTML = "";
+      const banner = MMT.modeBanner();
+      if (banner) app.appendChild(banner);
+
+      if (state.screen === "start") {
+        app.innerHTML += `
+          <div class="eyebrow">Unit 3 · Lecture 1</div>
+          <h1>Process Builder</h1>
+          <p>A manufacturing process is only as good as its exact sequence. Reconstruct the operational workflows for three core casting processes.</p>
+          
+          <div class="name-gate">
+            <div id="gateError" class="error-msg">Please fill in your Name, Class, and PRN.</div>
+            <div class="input-group">
+              <input type="text" id="nameInput" placeholder="Full Name" value="${state.studentName}">
+              <select id="classInput">
+                <option value="" disabled ${!state.studentClass ? "selected" : ""}>Select Class...</option>
+                <option value="FY" ${state.studentClass === "FY" ? "selected" : ""}>FY — First Year</option>
+                <option value="SY" ${state.studentClass === "SY" ? "selected" : ""}>SY — Second Year</option>
+                <option value="TY" ${state.studentClass === "TY" ? "selected" : ""}>TY — Third Year</option>
+                <option value="Final Year" ${state.studentClass === "Final Year" ? "selected" : ""}>Final Year</option>
+              </select>
+              <input type="text" id="prnInput" placeholder="PRN / Roll No." value="${state.prn}">
+            </div>
+            <button class="btn-primary" onclick="startActivity()" style="width:100%">Enter Workflow</button>
+          </div>
+        `;
+      } 
+      else if (state.screen === "task") {
+        const p = PROCESSES[state.processIndex];
+        const blanksCount = p.steps.filter(s => s.isBlank).length;
+        const isComplete = Object.keys(state.filledSteps).length === blanksCount;
+
+        let html = `
+          <div class="eyebrow">Process ${state.processIndex + 1} of 3</div>
+          <h2>${p.name}</h2>
+          <p>${p.intro}</p>
+          ${MMT.hintBlock('p'+state.processIndex, p.hint)}
+          
+          <div style="margin-top:24px;">
+            <div class="flow-container">
+              ${p.steps.map((step, i) => {
+                if (!step.isBlank) {
+                  return `<div class="step-card" data-step="${i+1}">✓ ${step.text}</div>`;
+                } else {
+                  const filledTxt = state.filledSteps[i];
+                  if (filledTxt) {
+                    return `<div class="step-card filled" data-step="${i+1}" onclick="activateBlank(${i})">${filledTxt}</div>`;
+                  } else {
+                    const isActive = state.activeBlank === i;
+                    return `<div class="step-card blank ${isActive ? 'active' : ''}" data-step="${i+1}" onclick="activateBlank(${i})">
+                      Select step from below... <span>▼</span>
+                    </div>`;
+                  }
+                }
+              }).join('')}
+            </div>
+
+            <div class="pool-area">
+              <div class="pool-title">Available Operations</div>
+              <div class="chip-grid">
+                ${state.shuffledPool.map(opt => {
+                  const isUsed = Object.values(state.filledSteps).includes(opt);
+                  return `
+                    <button class="chip ${isUsed ? 'used' : ''}" onclick="assignToActive('${opt.replace(/'/g, "\\'")}')">
+                      ${opt}
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="action-bar">
+            <span style="color:var(--muted); font-size:14px; font-weight:600;">
+              ${Object.keys(state.filledSteps).length} / ${blanksCount} Steps Assigned
+            </span>
+            <button class="btn-primary" onclick="submitProcess()" ${!isComplete ? "disabled" : ""}>
+              Verify Sequence
+            </button>
+          </div>
+        `;
+        app.innerHTML += html;
+      }
+      else if (state.screen === "results") {
+        const p = PROCESSES[state.processIndex];
+        let score = 0;
+        let max = p.steps.filter(s => s.isBlank).length * 15;
+        let detailsArr = [];
+        const usedHint = MMT.hintUsed('p'+state.processIndex);
+        const hintTag = MMT.hintTag(usedHint);
+
+        let resultsHtml = p.steps.map((step, i) => {
+          if (!step.isBlank) {
+            return `<div class="step-card" data-step="${i+1}" style="background:var(--card); opacity:0.7">✓ ${step.text}</div>`;
+          }
+          
+          const picked = state.filledSteps[i];
+          const isCorrect = picked === step.answer;
+          
+          let earned = 0;
+          if (isCorrect) {
+            earned = MMT.applyHintPenalty(15, usedHint);
+            score += earned;
+            detailsArr.push(`[Step ${i+1}]: Correct${hintTag}`);
+          } else {
+            detailsArr.push(`[Step ${i+1}]: Wrong (Picked ${picked}, was ${step.answer})${hintTag}`);
+          }
+          
+          return `
+            <div class="result-card ${isCorrect ? 'good' : 'bad'}" style="margin-left:20px; position:relative;">
+              <div style="position:absolute; left:-14px; top:16px; width:28px; height:28px; background:${isCorrect?'var(--good)':'var(--bad)'}; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">${i+1}</div>
+              <div style="margin-left:20px;">
+                <strong>Required: ${step.answer}</strong> 
+                ${!isCorrect ? `<br><span style="color:var(--bad); font-size:13px;">(You placed: ${picked})</span>` : ''}
+                <div style="font-size:14px; margin-top:8px;">${step.why}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        state.processScores.push({ score, max });
+        
+        if (!PRACTICE) {
+          MMT.submitResult(DB_ENABLED, {
+            game: "Casting Process Builder", type: "Type H",
+            college: COLLEGE_NAME, department: DEPARTMENT,
+            name: state.studentName, studentClass: state.studentClass, prn: state.prn,
+            round: p.name, roundNumber: state.processIndex + 1,
+            score: score, max: max, percent: Math.round((score/max)*100),
+            details: detailsArr.join(" | "), timeTaken: MMT.getTimeTaken()
+          }).then(res => {
+            const el = document.getElementById("submitStatus");
+            if(el) {
+              if(res.sent) { el.textContent = "✓ Result saved"; el.className = "submit-status ok"; }
+              else if(res.queued) { el.textContent = "⏳ Offline — saved, will auto-send later"; el.className = "submit-status warn"; }
+              else { el.textContent = "⚠ Couldn't reach the database"; el.className = "submit-status warn"; }
+            }
+          });
+        }
+
+        app.innerHTML += `
+          <div class="eyebrow">Process ${state.processIndex + 1} Review</div>
+          <h2>Sequence Verified</h2>
+          
+          <div style="font-size:18px; font-weight:700; margin-bottom:24px;">
+            Score: ${score} / ${max} ${usedHint && !PRACTICE ? '<span style="color:var(--warn);font-size:14px">(Hint Used)</span>' : ''}
+          </div>
+          <div style="border-left:3px solid var(--steel-light); margin-left:20px; padding-bottom:16px;">
+            ${resultsHtml}
+          </div>
+          <div id="submitStatus" class="submit-status"></div>
+          
+          <div class="action-bar">
+            <div></div>
+            <button class="btn-primary" onclick="nextProcess()">
+              ${state.processIndex < PROCESSES.length - 1 ? 'Next Process →' : 'View Final Report'}
+            </button>
+          </div>
+        `;
+      }
+      else if (state.screen === "final") {
+        let tScore = 0, tMax = 0;
+        state.processScores.forEach(s => { tScore += s.score; tMax += s.max; });
+        const pct = Math.round((tScore/tMax)*100);
+        
+        let html = `
+          <div class="eyebrow">Assessment Complete</div>
+          <h2>Final Engineering Report</h2>
+          <div class="score-hero">
+            ${MMT.renderBadge(pct)}
+            <div class="score-badge">${pct}%</div>
+            <div>Total Score: ${tScore} / ${tMax} pts</div>
+          </div>
+          
+          <div style="background:var(--card); padding:20px; border-radius:12px; margin-bottom:24px;">
+            <h3 style="margin-bottom:12px;">Process Breakdown</h3>
+            ${state.processScores.map((s,i) => `
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--steel-light); padding-bottom:8px;">
+                <span>${PROCESSES[i].name}</span>
+                <strong>${s.score} / ${s.max}</strong>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="flex-actions">
+            <button class="btn-primary" id="downloadBtn">⬇ Download Report Card</button>
+            <button class="btn-primary btn-ghost" onclick="location.reload()">Restart Challenge</button>
+          </div>
+        `;
+        app.innerHTML += html;
+
+        document.getElementById("downloadBtn").addEventListener("click", () => {
+          MMT.downloadReportCard({
+            activity: "Casting Process Builder",
+            name: state.studentName, studentClass: state.studentClass, prn: state.prn,
+            college: COLLEGE_NAME, department: DEPARTMENT,
+            percent: pct, scoreLine: tScore + " / " + tMax + " pts",
+            rating: pct>=90?"Workflow Expert":pct>=70?"Solid Sequences":pct>=50?"Good Effort":"Review Processes",
+            rows: state.processScores.map((s,i) => ({ label: PROCESSES[i].name, value: s.score+" / "+s.max }))
+          });
+        });
+      }
+    }
+
+    window.startActivity = function() {
+      const n = document.getElementById("nameInput").value.trim();
+      const c = document.getElementById("classInput").value;
+      const p = document.getElementById("prnInput").value.trim();
+      if (!n || !c || !p) { 
+        document.getElementById("gateError").style.display = "block";
+        return; 
+      }
+      
+      state.studentName = n; state.studentClass = c; state.prn = p;
+      state.screen = "task";
+      setupCurrentProcess();
+      MMT.markStart();
+      MMT.resetHints();
+      render();
+    };
+
+    window.activateBlank = function(index) {
+      if (state.filledSteps[index]) {
+        delete state.filledSteps[index];
+      }
+      state.activeBlank = index;
+      render();
+    };
+
+    window.assignToActive = function(opt) {
+      if (state.activeBlank === null) return;
+      state.filledSteps[state.activeBlank] = opt;
+      
+      const p = PROCESSES[state.processIndex];
+      const nextEmptyIndex = p.steps.findIndex((s, i) => s.isBlank && !state.filledSteps[i]);
+      state.activeBlank = nextEmptyIndex !== -1 ? nextEmptyIndex : null;
+      
+      render();
+    };
+
+    window.submitProcess = function() {
+      state.screen = "results";
+      render();
+    };
+
+    window.nextProcess = function() {
+      state.processIndex++;
+      MMT.resetHints();
+      if (state.processIndex >= PROCESSES.length) {
+        state.screen = "final";
+      } else {
+        setupCurrentProcess();
+        state.screen = "task";
+      }
+      render();
+    };
+
+    render();
+  </script>
+</body>
+</html>
