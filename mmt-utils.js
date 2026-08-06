@@ -53,6 +53,7 @@
   var firebaseConfig = {
     apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
     authDomain: "activity-2026.firebaseapp.com",
+    databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
     projectId: "activity-2026",
     storageBucket: "activity-2026.firebasestorage.app",
     messagingSenderId: "384955850563",
@@ -62,24 +63,33 @@
   // Initialize Firebase globally if scripts are loaded
   if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    // Enable offline persistence so it works perfectly without internet
-    firebase.firestore().enablePersistence({synchronizeTabs:true}).catch(function(err){});
   }
 
   // Low-level POST (now uses Firestore instead of Apps Script)
   function post(url, payload) {
     if (typeof firebase === 'undefined') return Promise.resolve({ sent: false, reason: "no-firebase" });
-    
-    // Add server timestamp for sorting
-    payload.serverTime = firebase.firestore.FieldValue.serverTimestamp();
+
+    // Use Realtime Database ServerValue.TIMESTAMP
+    payload.serverTime = firebase.database.ServerValue.TIMESTAMP;
     payload.Date = payload.Date || new Date().toLocaleDateString('en-GB');
     payload.Time = payload.Time || new Date().toLocaleTimeString('en-US');
+    
+    // Add practice tag
+    if (String(payload.mode) === "practice") payload.ActivityName = "🟠 Practice: " + payload.ActivityName;
 
-    // Fire and forget — Firestore caches it locally instantly and syncs in background
-    firebase.firestore().collection("submissions").add(payload)
-      .catch(function(err) { console.error("Firestore error:", err); });
-      
-    // Always return success instantly to keep the UI fast and happy
+    // Fix invalid RTDB keys (e.g. "Round / Mission")
+    let cleanPayload = {};
+    for (let k in payload) {
+      let cleanKey = k.replace(/[\.\#\$\/\[\]]/g, "-").trim();
+      if (cleanKey === "Round - Mission") cleanKey = "round"; // specific fallback for old AI prompt behavior
+      cleanPayload[cleanKey] = payload[k];
+    }
+
+    // Push to Realtime Database
+    firebase.database().ref("submissions").push(cleanPayload)
+      .then(function() { console.log("MMT Database push OK"); })
+      .catch(function(e) { console.error("MMT Database error:", e); });
+
     return Promise.resolve({ sent: true });
   }
 

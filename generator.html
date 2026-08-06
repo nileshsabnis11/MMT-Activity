@@ -322,7 +322,7 @@
     </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -568,15 +568,16 @@
     }
 
     // ---- Fetch full prompt file on page load ----
-    var fullPromptText = null; // will hold the master prompt content
-
+    var fullPromptText = 
+``n
+``n;
     function fetchPromptFile() {
-        var promptPath = '_PROMPT-FOR-AI-TOOLS/ACTIVITY-GENERATOR-PROMPT.md';
-        fetch(promptPath)
-            .then(function(res) {
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res.text();
-            })
+        document.getElementById('promptStatusIcon').textContent = '✅';
+        document.getElementById('promptStatusText').textContent = 'Master prompt loaded (' + Math.round(fullPromptText.length / 1024) + ' KB) - selecting a type will enable the copy button.';
+        document.getElementById('promptStatusBar').style.background = '#E7F3EA';
+        document.getElementById('promptStatusText').style.color = '#1E4D30';
+        document.getElementById('copyBtn').disabled = false;
+    })
             .then(function(text) {
                 fullPromptText = text;
                 document.getElementById('promptStatusIcon').textContent = '✅';

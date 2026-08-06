@@ -175,7 +175,7 @@
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -194,6 +194,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
+  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -202,7 +203,7 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
+const db = firebase.database();
 
 window.onerror = function(msg, src, line) {
   var p = document.getElementById("setupPanel");
@@ -218,9 +219,9 @@ function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy
 // ============================================================
 (async function autoLoad() {
   try {
-    const snap = await db.collection("submissions").get();
+    const snap = await db.ref("submissions").once("value");
     let rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
+    snap.forEach(child => { rows.push(child.val()); });
     if (!rows.length) {
       document.getElementById("setupPanel").innerHTML = '<div class="empty">Database is empty. Run an activity first.</div>';
       return;
@@ -922,10 +923,10 @@ function revealDistractors() {
   btn.textContent = '⏳ Checking…';
   btn.disabled = true;
 
-  db.collection("config").doc("main").get()
-    .then(function(doc) {
+  db.ref("config/main").once("value")
+    .then(function(snap) {
       btn.disabled = false;
-      var cfg = doc.exists ? doc.data() : {activities: []};
+      var cfg = snap.exists() ? snap.val() : {activities: []};
       var acts = cfg.activities || [];
 
       // Find the matching activity by name (word overlap match to handle minor title differences)

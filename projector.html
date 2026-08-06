@@ -101,7 +101,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -157,6 +157,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
+  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -165,7 +166,7 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
+const db = firebase.database();
 const REFRESH_SECS = 20;   // auto-refresh interval
 const TOP_N = 12;          // leaderboard rows to show
 
@@ -195,9 +196,9 @@ function keyOf(r){ return [nameOf(r),gameOf(r),roundOf(r),dateOf(r),timeOf(r),sc
 // ============================================================
 async function fetchData(){
   try {
-    const snap = await db.collection("submissions").get();
+    const snap = await db.ref("submissions").once("value");
     let rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
+    snap.forEach(child => { rows.push(child.val()); });
     DATA = { rows: rows, headers: [] };
     refreshFilters();
     render();

@@ -81,7 +81,7 @@ h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(26px,4vw,38px);margin
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -115,6 +115,7 @@ h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(26px,4vw,38px);margin
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
+  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -123,7 +124,7 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
+const db = firebase.database();
 
 // ============ FALLBACK (shown if backend is slow/offline) ============
 // Empty - if the database is unreachable, show nothing rather than stale data.
@@ -186,8 +187,8 @@ function renderCards(list){
 
 async function loadConfig() {
   try {
-    const doc = await db.collection("config").doc("main").get();
-    const data = doc.exists ? doc.data() : { activities: [] };
+    const snap = await db.ref("config/main").once("value");
+    const data = snap.exists() ? snap.val() : { activities: [] };
     const acts = data.activities || [];
     if(acts.length === 0) throw new Error("empty");
     renderCards(acts);

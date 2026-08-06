@@ -89,7 +89,7 @@ input:focus{outline:none;border-color:var(--copper);}
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -170,6 +170,7 @@ input:focus{outline:none;border-color:var(--copper);}
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
+  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -178,7 +179,7 @@ const firebaseConfig = {
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.firestore();
+const db = firebase.database();
 var PASSWORD   = "mmt2026";
 var activities = [];
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -272,8 +273,8 @@ function renderPractice(){
 async function loadConfig() {
   $("list").innerHTML = '<p class="loading">Loading from database...</p>';
   try {
-    const doc = await db.collection("config").doc("main").get();
-    const data = doc.exists ? doc.data() : { activities: [] };
+    const snap = await db.ref("config/main").once("value");
+    const data = snap.exists() ? snap.val() : { activities: [] };
     activities = data.activities || [];
     renderList();
   } catch(e) { $("list").innerHTML = '<p class="msg err">Load error: '+e.message+'</p>'; }
@@ -282,7 +283,7 @@ async function saveConfig() {
   var btn = $("saveBtn");
   btn.disabled = true; btn.textContent = "Saving…";
   try {
-    await db.collection("config").doc("main").set({ activities: activities });
+    await db.ref("config/main").set({ activities: activities });
     btn.textContent = "Saved ✓";
     setTimeout(() => { btn.disabled = false; btn.textContent = "Save Changes"; }, 2000);
   } catch(e) { 
@@ -300,7 +301,7 @@ async function addActivity(){
   
   try {
     activities.push({ name: name, file: file, visible: "YES" });
-    await db.collection("config").doc("main").set({ activities: activities });
+    await db.ref("config/main").set({ activities: activities });
     msg.className = "msg ok"; msg.textContent = "Added ✓"; 
     $("actName").value = ""; $("actFile").value = ""; 
     renderList();

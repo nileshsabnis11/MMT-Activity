@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Activity Template</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;}
@@ -76,6 +77,9 @@ input:focus,select:focus{outline:none;border-color:var(--copper);}
   }
 
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -276,7 +280,9 @@ function finish(){
   var statusEl = document.getElementById("submitStatus");
   if(PRACTICE){ statusEl.textContent="Practice mode — this attempt was NOT recorded."; statusEl.className="submit-status"; return; }
   if(!SHEET_WEBHOOK_URL){ statusEl.textContent=""; return; }
-  submitResult({
+
+  // Build per-question payload columns (REQUIRED for heatmap)
+  var payload = {
     game: META.game,
     type: META.type,
     college: COLLEGE_NAME,
@@ -290,7 +296,20 @@ function finish(){
     max: max,
     percent: pct,
     details: details
-  }).then(function(res){
+  };
+  QUESTIONS.forEach(function(item, qi){
+    var chosen = item.options[state.answers[qi]];
+    var ok = state.answers[qi] === item.correct;
+    var raw = ok ? perQ : 0;
+    var used = MMT.hintUsed(qi);
+    var marks = MMT.applyHintPenalty(raw, used);
+    var qNum = qi + 1;
+    payload["Q" + qNum + " Answer"] = chosen;
+    payload["Q" + qNum + " Marks"] = marks;
+    payload["Q" + qNum + " Detail"] = (ok ? "Correct ✅" : "Wrong ❌") + MMT.hintTag(used);
+  });
+
+  submitResult(payload).then(function(res){
     if(res.sent){ statusEl.textContent="✓ Result sent to your instructor"; statusEl.className="submit-status ok"; }
     else { statusEl.textContent="⚠ Couldn't reach the results sheet — your instructor may not see this attempt"; statusEl.className="submit-status warn"; }
   });
