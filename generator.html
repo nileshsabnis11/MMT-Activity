@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Generator - MMT Activities System</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --graphite: #1C2B33;
+            --copper: #D98E3B;
+            --copper-hover: #C57D2E;
+            --steel: #3E5C67;
+            --card: #F4F2EE;
+            --ink: #23343C;
+            --muted: #5C7079;
+            --good: #3E7A52;
+            --good-bg: #E7F3EA;
+            --warn: #9A6B1E;
+            --warn-bg: #FBF0DC;
+            --bad: #A23B3B;
+            --bad-bg: #FBEAEA;
+            --robot-blue: #2A5C7A;
+            --robot-blue-light: #DCEAF1;
+        }
+
+        /* Mobile Hardening Block */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        img, svg, video, canvas, table { max-width: 100%; height: auto; }
+        p, h1, h2, h3, li, td, th, .chip, .btn { overflow-wrap: break-word; word-break: break-word; }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--graphite);
+            color: #ffffff;
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .eyebrow {
+            font-family: 'Fraunces', serif;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .eyebrow {
+            color: var(--copper);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #A0B2BC;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background-color: var(--card);
+            color: var(--ink);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--graphite);
+            border-bottom: 2px solid #E2DED6;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .step-num {
+            background: var(--copper);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        /* Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .content-card {
+            background: white;
+            border: 2px solid #E2DED6;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .content-card:hover {
+            border-color: var(--steel);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .content-card.selected {
+            border-color: var(--copper);
+            background-color: #FDF9F3;
+            box-shadow: 0 4px 12px rgba(217, 142, 59, 0.15);
+        }
+
+        .content-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .content-text {
+            font-weight: 500;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* Recommendation Section */
+        #recommendation-section {
+            display: none;
+        }
+        
+        #recommendation-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rec-box {
+            background: var(--robot-blue-light);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .rec-type-badge {
+            display: inline-block;
+            background: var(--robot-blue);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .rec-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.8rem;
+            color: var(--graphite);
+            margin: 0 0 12px 0;
+        }
+
+        .rec-desc {
+            font-size: 1.1rem;
+            color: var(--ink);
+            margin: 0 0 16px 0;
+        }
+
+        .rec-action {
+            font-style: italic;
+            color: var(--steel);
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .secondary-suggestion {
+            background: white;
+            border-left: 4px solid var(--copper);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        /* Action Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: var(--copper);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--copper-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--copper);
+            color: var(--copper);
+        }
+        
+        .btn-outline:hover {
+            background: #FDF9F3;
+            color: var(--copper-hover);
+        }
+
+        .success-msg {
+            display: none;
+            background: var(--good-bg);
+            color: var(--good);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid var(--good);
+        }
+
+        .instructions-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-top: 24px;
+        }
+        
+        .instructions-list h4 {
+            margin-top: 0;
+            color: var(--graphite);
+        }
+
+        .instructions-list ol {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--ink);
+        }
+        
+        .instructions-list li {
+            margin-bottom: 8px;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 800px) {
+            .content-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Mobile specific adjustments inside the hardening block */
+        @media (max-width: 640px) {
+            body { padding-left: 14px; padding-right: 14px; }
+            .app, .panel, .wrap, .container, main { max-width: 100% !important; }
+            .panel { padding: 20px 16px !important; border-radius: 14px !important; }
+            h1 { font-size: clamp(24px, 7vw, 34px) !important; line-height: 1.12; }
+            h2 { font-size: clamp(20px, 5.5vw, 26px) !important; }
+            h3 { font-size: clamp(17px, 4.8vw, 21px) !important; }
+            .content-grid { grid-template-columns: 1fr !important; }
+            .btn, button, .chip, a.card, .card-link, select { min-height: 44px; }
+            .chip { padding: 11px 14px !important; font-size: 14px !important; }
+            .btn, button { padding: 13px 18px !important; font-size: 15px !important; }
+            input, select, textarea { font-size: 16px !important; width: 100%; }
+            .top, .mission-header, .score-hero, .app-header, header { flex-wrap: wrap; }
+        }
+        @media (max-width: 380px) {
+            .panel { padding: 16px 12px !important; }
+            .chip { font-size: 13.5px !important; }
+        }
+    </style>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <span class="eyebrow">Activity Generator</span>
+        <h1>Create a New Activity</h1>
+        <p class="subtitle">Select your content type below to get the perfect AI prompt for generating interactive activities.</p>
+    </header>
+
+    <!-- Step 1 -->
+    <div class="panel">
+        <h2><span class="step-num">1</span> Select your content type</h2>
+        <div class="content-grid" id="typeGrid">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="panel" id="recommendation-section">
+        <h2><span class="step-num">2</span> Recommended Activity Type</h2>
+        <div class="rec-box">
+            <span class="rec-type-badge" id="recBadge">TYPE X</span>
+            <h3 class="rec-title" id="recTitle">Activity Name</h3>
+            <p class="rec-desc" id="recDesc">Description goes here.</p>
+            <p class="rec-action"><strong>What students do:</strong> <span id="recAction">Action text.</span></p>
+        </div>
+        <div class="secondary-suggestion" id="secSuggestion" style="display: none;">
+            Alternative suggestion...
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="panel">
+        <h2><span class="step-num">3</span> Copy &amp; Generate</h2>
+
+        <div id="promptStatusBar" style="font-size:13px;color:var(--muted);margin-bottom:14px;padding:10px 14px;background:#f4f2ee;border-radius:10px;display:flex;align-items:center;gap:8px;">
+            <span id="promptStatusIcon">⏳</span>
+            <span id="promptStatusText">Loading master prompt file…</span>
+        </div>
+
+        <button class="btn" id="copyBtn" disabled>
+            📋 Copy Full Prompt to Clipboard
+        </button>
+        <div class="success-msg" id="successMsg" style="display:none;">
+            ✅ Copied! The full master prompt + your selected type instruction is now in your clipboard.
+        </div>
+        <div id="fallbackBox" style="display:none;margin-top:14px;background:#FBF0DC;border:1px solid #D98E3B;border-radius:10px;padding:14px 16px;">
+            <p style="margin:0 0 8px;font-size:13px;color:#7A4F00;font-weight:700;">⚠️ Could not auto-load the prompt file (local file access)</p>
+            <p style="margin:0 0 10px;font-size:13px;color:#7A4F00;">Copy it manually from: <code style="background:#fff;padding:2px 6px;border-radius:4px;">_PROMPT-FOR-AI-TOOLS/ACTIVITY-GENERATOR-PROMPT.md</code></p>
+            <button class="btn" id="copyTypeOnlyBtn" style="font-size:13px;padding:8px 14px;">📋 Copy Type Instruction Only</button>
+        </div>
+
+        <div class="instructions-list" style="margin-top:20px;">
+            <h4>What gets copied &amp; how to use it:</h4>
+            <ol>
+                <li><strong>One click copies everything</strong> — the full master prompt (all rules, design system, scoring, webhook URL) <strong>plus</strong> your selected type instruction at the end</li>
+                <li>Open any AI tool <strong>(ChatGPT / Gemini / Claude)</strong> → start a new chat</li>
+                <li><strong>Paste</strong> what you just copied</li>
+                <li>Then <strong>add your topic materials</strong> — paste your lecture notes, PPT text, or syllabus content directly after</li>
+                <li>The AI returns a <strong>complete ready-to-open .html file</strong></li>
+                <li>Save the file into this system's folder and register it below</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="panel">
+        <h2><span class="step-num">4</span> Register your new activity</h2>
+        <p style="margin-bottom: 24px; color: var(--muted);">Once the AI generates and you save the .html file into this system's folder, register it in the Control Panel.</p>
+        <a href="control.html" class="btn btn-outline">
+            → Open Control Panel
+        </a>
+    </div>
+
+    <footer>
+        © 2026 Prof. Nilesh Vijay Sabnis (9890880549)
+    </footer>
+</div>
+
+<script>
+    const contentTypes = [
+        {
+            id: 1,
+            icon: "🗂️",
+            text: "Lots of categories or families to group",
+            rec: {
+                id: "C",
+                name: "Sort & Classify",
+                desc: "A categorized sorting activity where items are dragged into specific buckets.",
+                action: "Students assign items into category buckets",
+                alt: "Type B (Multiple Choice) is also a good fit."
+            }
+        },
+        {
+            id: 2,
+            icon: "📊",
+            text: "Properties with measurable values to compare",
+            rec: {
+                id: "D",
+                name: "Rank & Order",
+                desc: "An ordering exercise focused on magnitudes, timelines, or steps.",
+                action: "Students arrange items from highest to lowest by a property",
+                alt: null
+            }
+        },
+        {
+            id: 3,
+            icon: "🔗",
+            text: "Terms, definitions, or symbols to match",
+            rec: {
+                id: "F",
+                name: "Connection Match",
+                desc: "A pairing activity that challenges students to link related concepts.",
+                action: "Students match Column A items to Column B in pairs",
+                alt: "Type B (Multiple Choice) is also a good fit."
+            }
+        },
+        {
+            id: 4,
+            icon: "⚙️",
+            text: "A sequential process or workflow",
+            rec: {
+                id: "H",
+                name: "Process Builder",
+                desc: "A flowchart-style activity for outlining procedures or pipelines.",
+                action: "Students fill in missing steps of a flowchart",
+                alt: null
+            }
+        },
+        {
+            id: 5,
+            icon: "❓",
+            text: "Common misconceptions in the topic",
+            rec: {
+                id: "E",
+                name: "Myth Buster",
+                desc: "A critical thinking exercise evaluating the validity of statements.",
+                action: "Students judge statements as True / False / Partially True",
+                alt: "Type B (Multiple Choice) is also a good fit."
+            }
+        },
+        {
+            id: 6,
+            icon: "🏥",
+            text: "Engineering failures or diagnosis scenarios",
+            rec: {
+                id: "G",
+                name: "Scenario Diagnosis",
+                desc: "A complex reasoning task diagnosing issues from context.",
+                action: "Students read a failure scenario and identify what went wrong + the fix",
+                alt: null
+            }
+        },
+        {
+            id: 7,
+            icon: "🧩",
+            text: "Design decisions: picking the right tool/material",
+            rec: {
+                id: "A",
+                name: "Selection Challenge",
+                desc: "A slot-filling activity focused on contextual choices.",
+                action: "Students pick the correct item for each slot in a scenario",
+                alt: null
+            }
+        },
+        {
+            id: 8,
+            icon: "🖼️",
+            text: "A diagram or machine with labelled parts",
+            rec: {
+                id: "I",
+                name: "Hotspot / Label",
+                desc: "A visual identification task on a diagram or image.",
+                action: "Students click on parts of a diagram and assign the correct label",
+                alt: null
+            }
+        },
+        {
+            id: 9,
+            icon: "🧮",
+            text: "Engineering formulas or equations to complete",
+            rec: {
+                id: "J",
+                name: "Equation Challenge",
+                desc: "An analytical exercise assembling or solving formulas.",
+                action: "Students complete equations by selecting the correct variable or unit",
+                alt: null
+            }
+        }
+    ];
+
+    let currentRec = null;
+    const grid = document.getElementById('typeGrid');
+    const recSection = document.getElementById('recommendation-section');
+    const copyBtn = document.getElementById('copyBtn');
+    const successMsg = document.getElementById('successMsg');
+
+    // Populate Grid
+    contentTypes.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'content-card';
+        card.innerHTML = `
+            <div class="content-icon">${item.icon}</div>
+            <div class="content-text">${item.text}</div>
+        `;
+        
+        card.addEventListener('click', () => {
+            // Deselect all
+            document.querySelectorAll('.content-card').forEach(c => c.classList.remove('selected'));
+            // Select current
+            card.classList.add('selected');
+            
+            // Show recommendation
+            showRecommendation(item.rec);
+        });
+        
+        grid.appendChild(card);
+    });
+
+    function showRecommendation(rec) {
+        currentRec = rec;
+        
+        document.getElementById('recBadge').textContent = `TYPE ${rec.id}`;
+        document.getElementById('recTitle').textContent = rec.name;
+        document.getElementById('recDesc').textContent = rec.desc;
+        document.getElementById('recAction').textContent = rec.action;
+        
+        const secSugg = document.getElementById('secSuggestion');
+        if (rec.alt) {
+            secSugg.textContent = rec.alt;
+            secSugg.style.display = 'block';
+        } else {
+            secSugg.style.display = 'none';
+        }
+
+        recSection.classList.add('active');
+        copyBtn.disabled = false;
+        successMsg.style.display = 'none';
+        
+        // Scroll slightly to show recommendation
+        recSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ---- Fetch full prompt file on page load ----
+    var fullPromptText = null; // will hold the master prompt content
+
+    function fetchPromptFile() {
+        var promptPath = '_PROMPT-FOR-AI-TOOLS/ACTIVITY-GENERATOR-PROMPT.md';
+        fetch(promptPath)
+            .then(function(res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(function(text) {
+                fullPromptText = text;
+                document.getElementById('promptStatusIcon').textContent = '✅';
+                document.getElementById('promptStatusText').textContent =
+                    'Master prompt loaded (' + Math.round(text.length / 1024) + ' KB) — selecting a type will enable the copy button.';
+                document.getElementById('promptStatusBar').style.background = '#E7F3EA';
+                document.getElementById('promptStatusText').style.color = '#1E4D30';
+                // If a type is already selected, enable the button
+                if (currentRec) copyBtn.disabled = false;
+            })
+            .catch(function() {
+                // Local file:// access or network error — show fallback
+                document.getElementById('promptStatusIcon').textContent = '⚠️';
+                document.getElementById('promptStatusText').textContent =
+                    'Cannot auto-load prompt (local file access). Use the manual option below.';
+                document.getElementById('promptStatusBar').style.background = '#FBF0DC';
+                document.getElementById('promptStatusText').style.color = '#7A4F00';
+                document.getElementById('fallbackBox').style.display = 'block';
+                copyBtn.style.display = 'none';
+            });
+    }
+
+    fetchPromptFile();
+
+    // ---- Copy button: full prompt + type instruction ----
+    copyBtn.addEventListener('click', function() {
+        if (!currentRec || !fullPromptText) return;
+
+        var typeInstruction = [
+            '---',
+            '',
+            '## Your Task',
+            '',
+            'Generate a **Type ' + currentRec.id + ' (' + currentRec.name + ')** activity.',
+            currentRec.desc,
+            '',
+            'What students will do: ' + currentRec.action + '.',
+            '',
+            '## My Topic Materials',
+            '',
+            '[Paste your lecture notes, PPT content, or syllabus text here]'
+        ].join('\n');
+
+        var fullCopy = fullPromptText + '\n\n' + typeInstruction;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullCopy).then(function() {
+                showSuccess();
+            }).catch(function() {
+                fallbackCopy(fullCopy);
+            });
+        } else {
+            fallbackCopy(fullCopy);
+        }
+    });
+
+    // ---- Fallback: copy type instruction only (when prompt couldn't be fetched) ----
+    var copyTypeOnlyBtn = document.getElementById('copyTypeOnlyBtn');
+    if (copyTypeOnlyBtn) {
+        copyTypeOnlyBtn.addEventListener('click', function() {
+            if (!currentRec) {
+                alert('Please select a content type first (Step 1).');
+                return;
+            }
+            var typeInstruction = 'Generate a Type ' + currentRec.id + ' (' + currentRec.name + ') activity. ' + currentRec.desc + ' I will provide my topic materials below.';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(typeInstruction).then(function() {
+                    copyTypeOnlyBtn.textContent = '✅ Copied!';
+                    setTimeout(function() { copyTypeOnlyBtn.textContent = '📋 Copy Type Instruction Only'; }, 2500);
+                });
+            } else {
+                prompt('Copy this instruction:', typeInstruction);
+            }
+        });
+    }
+
+    function showSuccess() {
+        var msg = document.getElementById('successMsg');
+        msg.style.display = 'block';
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(function() {
+            msg.style.display = 'none';
+            copyBtn.textContent = '📋 Copy Full Prompt to Clipboard';
+        }, 5000);
+    }
+
+    function fallbackCopy(text) {
+        // Last resort: textarea select
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+            document.execCommand('copy');
+            showSuccess();
+        } catch(e) {
+            alert('Could not auto-copy. Please open _PROMPT-FOR-AI-TOOLS/ACTIVITY-GENERATOR-PROMPT.md and copy it manually.');
+        }
+        document.body.removeChild(ta);
+    }
+
+    // ---- Also update showRecommendation to only enable copy when prompt is loaded ----
+    var _origShowRec = showRecommendation;
+    // Override: enable copy button only when BOTH type selected AND prompt loaded
+    function showRecommendation(rec) {
+        currentRec = rec;
+        document.getElementById('recBadge').textContent = 'TYPE ' + rec.id;
+        document.getElementById('recTitle').textContent = rec.name;
+        document.getElementById('recDesc').textContent = rec.desc;
+        document.getElementById('recAction').textContent = rec.action;
+        var secSugg = document.getElementById('secSuggestion');
+        if (rec.alt) { secSugg.textContent = rec.alt; secSugg.style.display = 'block'; }
+        else { secSugg.style.display = 'none'; }
+        recSection.classList.add('active');
+        // Enable copy only if prompt is already loaded
+        copyBtn.disabled = !fullPromptText;
+        document.getElementById('successMsg').style.display = 'none';
+        recSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+
+</body>
+</html>
