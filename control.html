@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control Panel</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;}
@@ -39,6 +40,20 @@ input:focus{outline:none;border-color:var(--copper);}
 .hidden{display:none;}
 #gate .panel{max-width:380px;margin:60px auto 0;}
 .loading{color:var(--muted);font-size:14px;padding:10px 0;}
+.three-state{display:flex;border:1.5px solid #d8d4cc;border-radius:8px;overflow:hidden;flex-shrink:0;}
+.three-state button{font-family:inherit;font-size:12px;font-weight:700;padding:6px 10px;border:none;background:#f8f6f2;color:var(--muted);cursor:pointer;transition:all .12s;}
+.three-state button.active-off{background:#FBEAEA;color:#A23B3B;}
+.three-state button.active-soon{background:#FBF0DC;color:#9A6B1E;}
+.three-state button.active-on{background:#E7F3EA;color:#3E7A52;}
+.timer-sel{font-family:inherit;font-size:12px;padding:5px 8px;border:1.5px solid #d8d4cc;border-radius:8px;color:var(--ink);background:#fff;margin-left:8px;cursor:pointer;}
+.type-ref-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.type-ref-table th{background:var(--graphite);color:#fff;padding:8px 10px;text-align:left;font-size:12px;}
+.type-ref-table td{padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top;}
+.type-ref-table tr:last-child td{border-bottom:none;}
+.type-ref-table tr:hover td{background:#faf9f6;}
+.collapsible-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;padding:10px 0 6px;}
+.collapsible-header span{font-size:14px;font-weight:700;color:var(--copper);}
+.collapsible-header .toggle-arrow{font-size:13px;color:var(--muted);}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #eee;}
 .prow:last-child{border-bottom:none;}
 .prow .row-title{font-weight:600;color:var(--ink);font-size:15px;}
@@ -72,6 +87,9 @@ input:focus{outline:none;border-color:var(--copper);}
     .chip { font-size: 13.5px !important; }
   }
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -93,6 +111,7 @@ input:focus{outline:none;border-color:var(--copper);}
       <div class="actions" style="margin-top:0;">
         <a class="btn" href="projector.html" target="_blank" style="text-decoration:none;">&#128250; Projector / Live Mode</a>
         <a class="btn btn-ghost" href="dashboard.html" target="_blank" style="text-decoration:none;">&#128202; Instructor Dashboard</a>
+        <a class="btn btn-ghost" href="generator.html" target="_blank" style="text-decoration:none;">✨ Create Activity</a>
       </div>
     </div>
     <div class="panel">
@@ -106,7 +125,7 @@ input:focus{outline:none;border-color:var(--copper);}
     </div>
     <div class="panel">
       <h2>Practice Mode Links</h2>
-      <p class="row-file" style="margin-bottom:14px;">Share a <b>practice link</b> to let students retry freely &mdash; attempts are <b>NOT recorded</b> to the sheet and an amber "Practice Mode" banner shows. The normal link (from the student hub) stays graded and recorded.</p>
+      <p class="row-file" style="margin-bottom:14px;">Share a <b>practice link</b> to let students retry freely &mdash; attempts are <b>NOT recorded</b> to the database and an amber "Practice Mode" banner shows. The normal link (from the student hub) stays graded and recorded.</p>
       <div id="practiceList"><p class="loading">Loading&hellip;</p></div>
     </div>
     <div class="panel">
@@ -119,12 +138,47 @@ input:focus{outline:none;border-color:var(--copper);}
         <button class="btn" id="addBtn">Add Activity</button>
         <span class="msg" id="addMsg"></span>
       </div>
-      <p class="row-file" style="margin-top:10px;">New activities start hidden (OFF). Flip the switch above and Save to reveal.</p>
+      <p class="row-file" style="margin-top:10px;">New activities start hidden (OFF). Use the 3-state button and Save to reveal.</p>
+    </div>
+    <div class="panel">
+      <div class="collapsible-header" id="typeRefHeader" onclick="toggleTypeRef()">
+        <span>📋 Which activity type fits my topic?</span>
+        <span class="toggle-arrow" id="typeRefArrow">▸</span>
+      </div>
+      <div id="typeRefBody" style="display:none;">
+        <table class="type-ref-table">
+          <thead><tr><th>Type</th><th>Name</th><th>Best For</th></tr></thead>
+          <tbody>
+            <tr><td><b>A</b></td><td>Selection Challenge</td><td>Material/tool/sensor selection per component slot</td></tr>
+            <tr><td><b>B</b></td><td>Detective Quiz</td><td>Identify items from clues; definition recall</td></tr>
+            <tr><td><b>C</b></td><td>Sort &amp; Classify</td><td>Grouping by category, material families, taxonomy</td></tr>
+            <tr><td><b>D</b></td><td>Rank &amp; Order</td><td>Ordering by property value, timelines, process priority</td></tr>
+            <tr><td><b>E</b></td><td>Myth Buster</td><td>Misconceptions, True/False/Partially True statements</td></tr>
+            <tr><td><b>F</b></td><td>Connection Match</td><td>Term → definition, cause → effect, symbol → meaning</td></tr>
+            <tr><td><b>G</b></td><td>Scenario Diagnosis</td><td>Engineering failure analysis, troubleshooting, case studies</td></tr>
+            <tr><td><b>H</b></td><td>Process Builder</td><td>Sequential steps, manufacturing workflow, algorithms</td></tr>
+            <tr><td><b>I</b></td><td>Hotspot / Label</td><td>Diagram labelling, machine parts, robot anatomy</td></tr>
+            <tr><td><b>J</b></td><td>Equation Challenge</td><td>Formula completion, unit selection, engineering calculations</td></tr>
+          </tbody>
+        </table>
+        <p class="row-file" style="margin-top:10px;">Use <a href="generator.html" target="_blank" style="color:var(--copper);font-weight:700;">✨ Create Activity</a> for step-by-step guidance.</p>
+      </div>
     </div>
   </div>
 </div>
 <script>
-var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const firebaseConfig = {
+  apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+  authDomain: "activity-2026.firebaseapp.com",
+  projectId: "activity-2026",
+  storageBucket: "activity-2026.firebasestorage.app",
+  messagingSenderId: "384955850563",
+  appId: "1:384955850563:web:6ea833f95a6300845759f6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
 var PASSWORD   = "mmt2026";
 var activities = [];
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -138,17 +192,58 @@ function tryUnlock(){
 }
 $("unlockBtn").addEventListener("click", tryUnlock);
 $("pw").addEventListener("keydown", function(e){ if(e.key === "Enter") tryUnlock(); });
+function visibilityState(a) {
+  var v = String(a.visible || '').toUpperCase();
+  if (v === 'SOON') return 'SOON';
+  if (v === 'YES' || v === 'TRUE' || v === '1' || a.visible === true) return 'YES';
+  return 'NO';
+}
 function renderList(){
   var box = $("list");
   if(!activities.length){ box.innerHTML = '<p class="loading">No activities registered yet. Add one below.</p>'; renderPractice(); return; }
   var html = "";
+  var TIMER_OPTIONS = [0,5,10,15,20,30];
   activities.forEach(function(a, i){
-    html += '<div class="row"><div><div class="row-title">' + esc(a.name || a.file) + '</div><div class="row-file">' + esc(a.file) + '</div></div>' +
-      '<label class="switch"><input type="checkbox" data-i="' + i + '"' + (a.visible ? ' checked' : '') + '><span class="slider"></span></label></div>';
+    var vs = visibilityState(a);
+    var timerVal = parseInt(a.timerMinutes || 0, 10) || 0;
+    var timerOpts = TIMER_OPTIONS.map(function(t){
+      return '<option value="' + t + '"' + (timerVal === t ? ' selected' : '') + '>' + (t === 0 ? 'No Timer' : t + ' min') + '</option>';
+    }).join('');
+    html += '<div class="row" style="flex-wrap:wrap;gap:8px;">' +
+      '<div style="flex:1;min-width:120px;"><div class="row-title">' + esc(a.name || a.file) + '</div><div class="row-file">' + esc(a.file) + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+        '<div class="three-state">' +
+          '<button data-i="' + i + '" data-v="NO" class="' + (vs==='NO'?'active-off':'') + '">OFF</button>' +
+          '<button data-i="' + i + '" data-v="SOON" class="' + (vs==='SOON'?'active-soon':'') + '">SOON</button>' +
+          '<button data-i="' + i + '" data-v="YES" class="' + (vs==='YES'?'active-on':'') + '">ON</button>' +
+        '</div>' +
+        '<select class="timer-sel" data-i="' + i + '">' + timerOpts + '</select>' +
+      '</div>' +
+    '</div>';
   });
   box.innerHTML = html;
-  Array.prototype.forEach.call(box.querySelectorAll('input[type=checkbox]'), function(cb){
-    cb.addEventListener("change", function(){ activities[+cb.getAttribute("data-i")].visible = cb.checked; });
+  // 3-state buttons
+  Array.prototype.forEach.call(box.querySelectorAll('.three-state button'), function(btn){
+    btn.addEventListener('click', function(){
+      var idx = +btn.getAttribute('data-i');
+      var val = btn.getAttribute('data-v');
+      activities[idx].visible = val;
+      // Update button active classes in this row
+      var btns = btn.parentNode.querySelectorAll('button');
+      btns.forEach(function(b){
+        b.className = '';
+        if (b.getAttribute('data-v') === 'NO' && val === 'NO') b.className = 'active-off';
+        if (b.getAttribute('data-v') === 'SOON' && val === 'SOON') b.className = 'active-soon';
+        if (b.getAttribute('data-v') === 'YES' && val === 'YES') b.className = 'active-on';
+      });
+    });
+  });
+  // Timer selects
+  Array.prototype.forEach.call(box.querySelectorAll('select.timer-sel'), function(sel){
+    sel.addEventListener('change', function(){
+      var idx = +sel.getAttribute('data-i');
+      activities[idx].timerMinutes = parseInt(sel.value, 10) || 0;
+    });
   });
   renderPractice();
 }
@@ -174,39 +269,56 @@ function renderPractice(){
     });
   });
 }
-function loadConfig(){
-  $("list").innerHTML = '<p class="loading">Loading&hellip;</p>';
-  fetch(SCRIPT_URL + "?action=getConfig").then(function(r){ return r.json(); })
-    .then(function(data){ activities = (data && data.activities) ? data.activities : []; renderList(); })
-    .catch(function(){ $("list").innerHTML = '<p class="msg err">Could not reach the backend. Check the URL and try Reload.</p>'; });
+async function loadConfig() {
+  $("list").innerHTML = '<p class="loading">Loading from database...</p>';
+  try {
+    const doc = await db.collection("config").doc("main").get();
+    const data = doc.exists ? doc.data() : { activities: [] };
+    activities = data.activities || [];
+    renderList();
+  } catch(e) { $("list").innerHTML = '<p class="msg err">Load error: '+e.message+'</p>'; }
 }
-function saveChanges(){
-  var btn = $("saveBtn"), msg = $("saveMsg");
-  btn.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
-  var states = activities.map(function(a){ return { file: a.file, visible: !!a.visible }; });
-  fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "saveConfig", states: states }) })
-    .then(function(r){ return r.json(); })
-    .then(function(res){ btn.disabled = false;
-      if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Saved ✓"; }
-      else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Save failed."; } })
-    .catch(function(){ btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error."; });
+async function saveConfig() {
+  var btn = $("saveBtn");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    await db.collection("config").doc("main").set({ activities: activities });
+    btn.textContent = "Saved ✓";
+    setTimeout(() => { btn.disabled = false; btn.textContent = "Save Changes"; }, 2000);
+  } catch(e) { 
+    btn.textContent = "Error"; 
+    btn.disabled = false;
+    alert("Save error: " + e.message); 
+  }
 }
-function addActivity(){
+async function addActivity(){
   var name = $("actName").value.trim(); var file = $("actFile").value.trim();
   var btn = $("addBtn"), msg = $("addMsg");
   if(!name || !file){ msg.className = "msg err"; msg.textContent = "Name and file are required."; return; }
   if(!/\.html?$/i.test(file)){ msg.className = "msg err"; msg.textContent = "File should end in .html"; return; }
   btn.disabled = true; msg.className = "msg"; msg.textContent = "Adding…";
-  fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addActivity", name: name, file: file }) })
-    .then(function(r){ return r.json(); })
-    .then(function(res){ btn.disabled = false;
-      if(res && res.status === "success"){ msg.className = "msg ok"; msg.textContent = "Added ✓"; $("actName").value = ""; $("actFile").value = ""; loadConfig(); }
-      else { msg.className = "msg err"; msg.textContent = (res && res.message) || "Add failed."; } })
-    .catch(function(){ btn.disabled = false; msg.className = "msg err"; msg.textContent = "Network error."; });
+  
+  try {
+    activities.push({ name: name, file: file, visible: "YES" });
+    await db.collection("config").doc("main").set({ activities: activities });
+    msg.className = "msg ok"; msg.textContent = "Added ✓"; 
+    $("actName").value = ""; $("actFile").value = ""; 
+    renderList();
+  } catch(e) {
+    msg.className = "msg err"; msg.textContent = "Error: " + e.message;
+  }
+  btn.disabled = false;
 }
-$("saveBtn").addEventListener("click", saveChanges);
+$("saveBtn").addEventListener("click", saveConfig);
 $("reloadBtn").addEventListener("click", loadConfig);
 $("addBtn").addEventListener("click", addActivity);
+function toggleTypeRef(){
+  var body = $("typeRefBody"), arrow = $("typeRefArrow");
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent = open ? '▸' : '▾';
+}
 </script>
 <div class="cr-copyright" style="text-align:center;padding:12px 16px;font-size:12px;color:#64748b;font-family:system-ui,Segoe UI,Arial,sans-serif;">&copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549)</div>
 </body>

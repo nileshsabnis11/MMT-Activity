@@ -49,16 +49,38 @@
     writeQueue(q);
   }
 
-  // Low-level POST. Resolves {sent:true} or {sent:false, reason}.
+  /* ---------- FIREBASE CONFIG ---------- */
+  var firebaseConfig = {
+    apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+    authDomain: "activity-2026.firebaseapp.com",
+    projectId: "activity-2026",
+    storageBucket: "activity-2026.firebasestorage.app",
+    messagingSenderId: "384955850563",
+    appId: "1:384955850563:web:6ea833f95a6300845759f6"
+  };
+
+  // Initialize Firebase globally if scripts are loaded
+  if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    // Enable offline persistence so it works perfectly without internet
+    firebase.firestore().enablePersistence({synchronizeTabs:true}).catch(function(err){});
+  }
+
+  // Low-level POST (now uses Firestore instead of Apps Script)
   function post(url, payload) {
-    if (!url) return Promise.resolve({ sent: false, reason: "no-url" });
-    return fetch(url, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
-    }).then(function () { return { sent: true }; })
-      .catch(function () { return { sent: false, reason: "network" }; });
+    if (typeof firebase === 'undefined') return Promise.resolve({ sent: false, reason: "no-firebase" });
+    
+    // Add server timestamp for sorting
+    payload.serverTime = firebase.firestore.FieldValue.serverTimestamp();
+    payload.Date = payload.Date || new Date().toLocaleDateString('en-GB');
+    payload.Time = payload.Time || new Date().toLocaleTimeString('en-US');
+
+    // Fire and forget — Firestore caches it locally instantly and syncs in background
+    firebase.firestore().collection("submissions").add(payload)
+      .catch(function(err) { console.error("Firestore error:", err); });
+      
+    // Always return success instantly to keep the UI fast and happy
+    return Promise.resolve({ sent: true });
   }
 
   // Try to resend everything sitting in the queue. Because no-cors gives us
@@ -333,6 +355,117 @@
     return (used && !isPractice()) ? " " + HINT_TAG : "";
   }
 
+  /* ---------- 6. TIME TRACKING ---------- */
+  // markStart() — call when student clicks "Start" (after gate passes)
+  // getTimeTaken() — call at submit, returns seconds elapsed or null
+  // Used for speed tie-breaking on leaderboard (always on, for all activities).
+
+  var _startTime = null;
+
+  function markStart() {
+    _startTime = Date.now();
+  }
+
+  function getTimeTaken() {
+    if (!_startTime) return null;
+    return Math.round((Date.now() - _startTime) / 1000);
+  }
+
+  function fmtTime(seconds) {
+    if (seconds == null || isNaN(seconds)) return '—';
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /* ---------- 7. TIMED MODE ---------- */
+  // startTimer(onExpireCallback) — reads ?timed=N from URL
+  // If N > 0: injects a countdown pill in top-right corner, calls callback at 0.
+  // If no ?timed param: safe no-op.
+
+  var _timerInterval = null;
+
+  function getTimerSeconds() {
+    try {
+      var t = parseInt(new URLSearchParams(window.location.search).get('timed'), 10);
+      return (!isNaN(t) && t > 0) ? t : 0;
+    } catch (e) { return 0; }
+  }
+
+  function startTimer(onExpireCallback) {
+    var total = getTimerSeconds();
+    if (!total) return; // no-op if no ?timed param
+
+    var remaining = total;
+
+    // Create pill element
+    var pill = document.createElement('div');
+    pill.id = 'mmt-timer-pill';
+    pill.style.cssText =
+      'position:fixed;top:14px;right:16px;z-index:9999;' +
+      'background:#1C2B33;color:#D98E3B;font-family:Inter,system-ui,sans-serif;' +
+      'font-size:15px;font-weight:700;padding:8px 16px;border-radius:99px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.35);border:2px solid #D98E3B;' +
+      'letter-spacing:0.04em;transition:background 0.3s,color 0.3s,border-color 0.3s;';
+
+    function updatePill() {
+      var m = Math.floor(remaining / 60);
+      var s = remaining % 60;
+      pill.textContent = '⏱ ' + m + ':' + (s < 10 ? '0' : '') + s;
+      if (remaining <= 30) {
+        pill.style.background = '#A23B3B';
+        pill.style.color = '#fff';
+        pill.style.borderColor = '#A23B3B';
+      }
+    }
+
+    updatePill();
+    document.body.appendChild(pill);
+
+    _timerInterval = setInterval(function () {
+      remaining--;
+      updatePill();
+      if (remaining <= 0) {
+        clearInterval(_timerInterval);
+        pill.textContent = '⏱ Time\'s up!';
+        pill.style.background = '#A23B3B';
+        pill.style.color = '#fff';
+        if (typeof onExpireCallback === 'function') {
+          setTimeout(onExpireCallback, 400); // slight delay so student sees "Time's up!"
+        }
+      }
+    }, 1000);
+  }
+
+  /* ---------- 8. VISUAL BADGE ---------- */
+  // renderBadge(percent) — returns HTML string for final screen achievement badge.
+  // Tiers: >=90 Outstanding, >=70 Great Job, >=50 Good Effort, <50 Keep Practicing
+
+  function renderBadge(percent) {
+    var p = parseInt(percent, 10) || 0;
+    var icon, label, bg, border, color;
+    if (p >= 90) {
+      icon = '🏆'; label = 'Outstanding';
+      bg = '#FFF8E6'; border = '#D98E3B'; color = '#7A4F00';
+    } else if (p >= 70) {
+      icon = '🥈'; label = 'Great Job';
+      bg = '#E7F3EA'; border = '#3E7A52'; color = '#1E4D30';
+    } else if (p >= 50) {
+      icon = '🥉'; label = 'Good Effort';
+      bg = '#DCEAF1'; border = '#2A5C7A'; color = '#1a3a4d';
+    } else {
+      icon = '💪'; label = 'Keep Practicing';
+      bg = '#FBEAEA'; border = '#A23B3B'; color = '#6B1E1E';
+    }
+    return '<div style="text-align:center;margin:0 0 20px;' +
+      'background:' + bg + ';border:2px solid ' + border + ';border-radius:16px;' +
+      'padding:18px 24px;animation:badgePop 0.45s cubic-bezier(0.34,1.56,0.64,1) both;">' +
+      '<style>@keyframes badgePop{0%{opacity:0;transform:scale(0.7)}100%{opacity:1;transform:scale(1)}}</style>' +
+      '<div style="font-size:40px;line-height:1;margin-bottom:6px">' + icon + '</div>' +
+      '<div style="font-family:Fraunces,serif;font-size:22px;font-weight:700;color:' + color + '">' + label + '</div>' +
+    '</div>';
+  }
+
   window.MMT = {
     shuffle: shuffle,
     pickPool: pickPool,
@@ -351,6 +484,15 @@
     applyHintPenalty: applyHintPenalty,
     hintTag: hintTag,
     HINT_TAG: HINT_TAG,
+    // time tracking (always on — for speed tie-breaker)
+    markStart: markStart,
+    getTimeTaken: getTimeTaken,
+    fmtTime: fmtTime,
+    // timed mode
+    startTimer: startTimer,
+    getTimerSeconds: getTimerSeconds,
+    // visual badge
+    renderBadge: renderBadge,
     // set MMT._autoFlushUrl = SHEET_WEBHOOK_URL in your activity to auto-flush on load
     _autoFlushUrl: null,
   };

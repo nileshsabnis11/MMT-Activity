@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Class Activity Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
@@ -172,6 +173,9 @@
   }
 
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -181,13 +185,24 @@
     <p>Real-time results from all interactive classroom activities. Click any activity for deep question-level analytics.</p>
   </div>
   <div id="content">
-    <div class="panel" id="setupPanel"><div class="loading">Loading data from Google Sheet...</div></div>
+    <div class="panel" id="setupPanel"><div class="loading">Loading data from Database...</div></div>
     <div id="dashboard" class="hidden"></div>
   </div>
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const firebaseConfig = {
+  apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+  authDomain: "activity-2026.firebaseapp.com",
+  projectId: "activity-2026",
+  storageBucket: "activity-2026.firebasestorage.app",
+  messagingSenderId: "384955850563",
+  appId: "1:384955850563:web:6ea833f95a6300845759f6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
 
 window.onerror = function(msg, src, line) {
   var p = document.getElementById("setupPanel");
@@ -203,24 +218,21 @@ function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy
 // ============================================================
 (async function autoLoad() {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch(SCRIPT_URL + "?action=getData", { signal: controller.signal });
-    clearTimeout(timer);
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch(e) { throw new Error("Bad response from sheet (not JSON). Check deployment settings."); }
-    if (!json.rows || json.rows.length === 0) {
-      document.getElementById("setupPanel").innerHTML = '<div class="empty">Sheet is empty. Run an activity first, then refresh.</div>';
+    const snap = await db.collection("submissions").get();
+    let rows = [];
+    snap.forEach(doc => rows.push(doc.data()));
+    if (!rows.length) {
+      document.getElementById("setupPanel").innerHTML = '<div class="empty">Database is empty. Run an activity first.</div>';
       return;
     }
-    DATA = json;
+    DATA = { rows: rows, headers: Object.keys(rows[0]||{}) };
+    document.getElementById("setupPanel").classList.add("hidden");
     try { renderOverview(); } catch(renderErr) {
       document.getElementById("setupPanel").classList.remove("hidden");
       document.getElementById("setupPanel").innerHTML = `<div style="background:var(--bad-bg);border-radius:14px;padding:20px 24px;border:2px solid var(--bad);"><h3 style="font-family:Fraunces,serif;color:var(--graphite);font-size:18px;margin-bottom:10px;">Render error</h3><p style="color:var(--ink);font-size:14px;margin-bottom:14px;">${esc(renderErr.message)}</p><button class="btn btn-primary" onclick="location.reload()">Retry</button></div>`;
     }
   } catch (err) {
-    const msg = err.name === "AbortError" ? "Request timed out (12s). The script may be slow or unreachable." : err.message;
+    const msg = err.name === "AbortError" ? "Request timed out (30s). The script may be slow or unreachable." : err.message;
     document.getElementById("setupPanel").innerHTML = `<div style="background:var(--warn-bg);border-radius:14px;padding:20px 24px;border:2px solid var(--copper);"><h3 style="font-family:Fraunces,serif;color:var(--graphite);font-size:18px;margin-bottom:10px;">Could not connect</h3><p style="color:var(--ink);font-size:14px;margin-bottom:14px;">${esc(msg)}</p><button class="btn btn-primary" onclick="location.reload()">Retry</button> <button class="btn btn-ghost" onclick="DATA=generateDemoData();renderOverview();" style="margin-left:8px;">Load Demo</button></div>`;
   }
 })();
@@ -305,7 +317,12 @@ function renderOverview() {
 
     <div class="panel">
       <h2 style="color:var(--graphite)">Student Deep Dive</h2>
-      <p class="panel-sub">Click any student row above to see their full performance breakdown.</p>
+      <p class="panel-sub">Click any student row above, or search by name / PRN below.</p>
+      <div class="search-bar" style="margin-bottom:16px;">
+        <input type="text" id="studentSearch" placeholder="Type student name or PRN…" style="flex:1;" />
+        <button class="btn btn-ghost btn-sm" id="studentSearchBtn">Find</button>
+      </div>
+      <div id="studentSearchResults" class="hidden" style="margin-bottom:12px;"></div>
       <div id="studentDive" class="empty">Select a student to begin.</div>
     </div>
   `;
@@ -352,6 +369,38 @@ function renderOverview() {
   document.getElementById("dateFilterAll").addEventListener("change", () => renderAllTable(rows));
   document.getElementById("classFilterAll").addEventListener("change", () => renderAllTable(rows));
   document.getElementById("exportBtn").addEventListener("click", () => exportCSV(rows));
+
+  // Find Student search
+  function doStudentSearch() {
+    const q = (document.getElementById('studentSearch').value || '').toLowerCase().trim();
+    const resBox = document.getElementById('studentSearchResults');
+    if (!q) { resBox.classList.add('hidden'); resBox.innerHTML = ''; return; }
+    const all = DATA.rows;
+    const matched = [...new Set(all
+      .filter(r => {
+        const name = (r['Student Name']||r['name']||'').toLowerCase();
+        const prn  = (r['PRN']||'').toLowerCase();
+        return name.includes(q) || prn.includes(q);
+      })
+      .map(r => r['Student Name']||r['name']||'')
+    )].filter(Boolean);
+    if (!matched.length) {
+      resBox.classList.remove('hidden');
+      resBox.innerHTML = '<p style="color:var(--muted);font-size:14px;">No student found matching "' + esc(q) + '"</p>';
+      return;
+    }
+    if (matched.length === 1) {
+      resBox.classList.add('hidden');
+      renderStudentDive(matched[0]);
+      return;
+    }
+    resBox.classList.remove('hidden');
+    resBox.innerHTML = matched.map(n =>
+      `<button class="btn btn-ghost btn-sm" style="margin:3px;" onclick="renderStudentDive('${esc(n)}')">${esc(n)}</button>`
+    ).join('');
+  }
+  document.getElementById('studentSearchBtn').addEventListener('click', doStudentSearch);
+  document.getElementById('studentSearch').addEventListener('keydown', e => { if (e.key === 'Enter') doStudentSearch(); });
 }
 
 function renderActivityCards() {
@@ -531,6 +580,7 @@ function exportHeatmapCSV(gameName) {
 // ACTIVITY DETAIL PAGE
 // ============================================================
 function renderActivityDetail(gameName) {
+  window._currentGameName = gameName; // used by revealDistractors() to check config
   const dash = document.getElementById("dashboard");
   const allGameRows = DATA.rows.filter(r => (r["Game"]||r["game"]) === gameName);
   const rounds = [...new Set(allGameRows.map(r => r["Round / Mission"]||r["round"]||r["mission"]||""))].filter(Boolean);
@@ -585,10 +635,17 @@ function renderActivityDetail(gameName) {
       <div class="insight-grid" id="insights"></div>
     </div>
 
-    <div class="panel" id="distractorPanel">
-      <h2 style="color:var(--graphite)">Distractor Analysis 🔍</h2>
-      <p class="panel-sub">What wrong answers did students pick? This reveals the <i>misconceptions</i> to re-teach — not just who got it wrong, but <b>why</b>.</p>
-      <div id="distractorContent"></div>
+    <div class="panel" id="distractorPanel" style="border:2px dashed #d8d4cc;background:#faf9f6;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="color:var(--graphite)">Distractor Analysis 🔍</h2>
+          <p class="panel-sub" style="margin:4px 0 0;">Hidden while activity is in progress. Reveal after closing the activity.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="revealDistractorBtn" onclick="revealDistractors()" style="border:1.5px solid var(--copper);color:var(--copper);">
+          🔓 Reveal Analysis
+        </button>
+      </div>
+      <div id="distractorContent" style="display:none;margin-top:16px;"></div>
     </div>
 
     <div class="panel">
@@ -604,8 +661,9 @@ function renderActivityDetail(gameName) {
 
     <div class="panel">
       <h2 style="color:var(--graphite)">Student Rankings — ${esc(gameName)}</h2>
+      <p class="panel-sub" style="margin-bottom:12px;">When scores are tied, faster submissions rank higher. ⚡</p>
       <div class="table-wrap"><table><thead><tr>
-        <th>#</th><th>Class</th><th>PRN</th><th>Student</th><th>Round</th><th>Score</th><th>%</th><th>Rating</th>
+        <th>#</th><th>Class</th><th>PRN</th><th>Student</th><th>Round</th><th>Score</th><th>%</th><th>Time Taken</th><th>Rating</th>
       </tr></thead><tbody id="actBody"></tbody></table></div>
     </div>
   `;
@@ -743,7 +801,10 @@ function renderDistractors(rows) {
   wrap.innerHTML = "";
   const qInfo = getQCols();
   const cols = qInfo.type === "new" ? qInfo.answerCols : (qInfo.detailCols || []);
-  if (!cols.length) { wrap.innerHTML = '<p class="empty">No question data for distractor analysis.</p>'; return; }
+  if (!cols.length) {
+    document.getElementById('distractorPanel').classList.add('hidden');
+    return;
+  }
 
   // Build per-question wrong-answer tallies
   const data = []; // [{label, total, wrongCount, tallies: {wrongAnswer: count}}]
@@ -783,7 +844,16 @@ function renderDistractors(rows) {
     data.push({ label, total, wrongCount, wrongRate: Math.round((wrongCount/total)*100), tallies: sortedTallies });
   });
 
-  if (!data.length) { wrap.innerHTML = '<p class="empty">No wrong answers — everyone aced it! 🎉</p>'; return; }
+  if (!data.length) {
+    // Keep panel hidden — all correct, nothing to show
+    document.getElementById('distractorPanel').classList.add('hidden');
+    wrap.innerHTML = '';
+    return;
+  }
+  // Distractor panel is hidden by default (activity may still be running).
+  // Data is computed and stored but only rendered when instructor clicks "Reveal".
+  window._distractorData = data; // save for on-demand render
+
 
   // Render: each question gets a collapsible block showing top wrong answers
   // Highlight the most-misunderstood questions first
@@ -828,6 +898,125 @@ function renderDistractors(rows) {
   </div>`;
 
   wrap.innerHTML = html;
+}
+
+// Called when instructor clicks "🔓 Reveal Analysis" button
+function revealDistractors() {
+  var content = document.getElementById('distractorContent');
+  var btn = document.getElementById('revealDistractorBtn');
+  var panel = document.getElementById('distractorPanel');
+  if (!content) return;
+
+  // --- If already open, toggle close ---
+  if (content.style.display !== 'none') {
+    content.style.display = 'none';
+    btn.textContent = '🔓 Reveal Analysis';
+    btn.disabled = false;
+    panel.style.border = '2px dashed #d8d4cc';
+    panel.style.background = '#faf9f6';
+    return;
+  }
+
+  // --- Check live config: is this activity still open? ---
+  var gameName = window._currentGameName || '';
+  btn.textContent = '⏳ Checking…';
+  btn.disabled = true;
+
+  db.collection("config").doc("main").get()
+    .then(function(doc) {
+      btn.disabled = false;
+      var cfg = doc.exists ? doc.data() : {activities: []};
+      var acts = cfg.activities || [];
+
+      // Find the matching activity by name (word overlap match to handle minor title differences)
+      var match = acts.find(function(a) {
+        var w1 = (a.name || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+        var w2 = gameName.toLowerCase().match(/[a-z0-9]+/g) || [];
+        var common = w1.filter(function(w) { return w2.indexOf(w) !== -1; });
+        var req = Math.min(w1.length, w2.length, 2); // Require at least 2 common words (or 1 if short)
+        return common.length >= req && req > 0;
+      });
+
+      var isActive = match && (
+        String(match.visible).toUpperCase() === 'YES' ||
+        String(match.visible).toUpperCase() === 'TRUE' ||
+        match.visible === true
+      );
+
+      if (isActive) {
+        // Activity is STILL OPEN — block access
+        btn.textContent = '🔒 Activity is Ongoing';
+        btn.style.color = 'var(--bad)';
+        btn.style.borderColor = 'var(--bad)';
+        // Show brief message in panel
+        content.style.display = 'block';
+        content.innerHTML = '<div style="background:var(--bad-bg);border:1.5px solid var(--bad);border-radius:10px;padding:14px 16px;margin-top:10px;">' +
+          '<b style="color:var(--bad);font-size:14px;">🔒 Activity is still in progress</b>' +
+          '<p style="color:var(--bad);font-size:13px;margin-top:6px;">Close this activity in the Control Panel (set to OFF) before viewing the Distractor Analysis.</p>' +
+          '</div>';
+        // Auto-hide the message after 5 seconds
+        setTimeout(function() {
+          content.style.display = 'none';
+          content.innerHTML = '';
+          btn.textContent = '🔓 Reveal Analysis';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 5000);
+        return;
+      }
+
+      // --- Activity is closed — render analysis ---
+      openDistractorPanel(content, btn, panel);
+    })
+    .catch(function() {
+      // Config fetch failed — allow offline access with a warning
+      btn.disabled = false;
+      btn.textContent = '🔓 Reveal Analysis';
+      openDistractorPanel(content, btn, panel);
+    });
+}
+
+function openDistractorPanel(content, btn, panel) {
+  content.style.display = 'block';
+  btn.textContent = '🔒 Hide Analysis';
+  panel.style.border = '2px solid var(--copper)';
+  panel.style.background = '#fff';
+
+  var data = window._distractorData;
+  if (!data || !data.length) {
+    content.innerHTML = '<p class="empty" style="margin-top:10px;">No wrong-answer data — all students answered correctly! 🎉</p>';
+    return;
+  }
+
+  var sorted = data.slice().sort(function(a,b){ return b.wrongRate - a.wrongRate; });
+  var html = '';
+  sorted.forEach(function(d) {
+    var severity = d.wrongRate >= 50 ? 'critical' : d.wrongRate >= 25 ? 'warning' : 'ok';
+    var icon = severity === 'critical' ? '🔴' : severity === 'warning' ? '🟡' : '🟢';
+    var bg = severity === 'critical' ? 'var(--bad-bg)' : severity === 'warning' ? 'var(--warn-bg)' : 'var(--good-bg)';
+    var bc = severity === 'critical' ? 'var(--bad)' : severity === 'warning' ? 'var(--copper)' : 'var(--good)';
+    html += '<div style="background:'+bg+';border-radius:12px;padding:16px 20px;margin-bottom:12px;border-left:4px solid '+bc+';">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">';
+    html += '<b style="font-family:Fraunces,serif;font-size:17px;color:var(--graphite);">'+icon+' '+esc(d.label)+'</b>';
+    html += '<span style="font-size:13px;font-weight:700;color:'+bc+';">'+d.wrongRate+'% wrong ('+d.wrongCount+'/'+d.total+' students)</span></div>';
+    if (d.tallies && d.tallies.length) {
+      html += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><span style="font-size:12px;font-weight:600;color:var(--muted);">Most-chosen wrong answers:</span>';
+      d.tallies.slice(0,5).forEach(function(t){
+        var pct = Math.round((t[1]/d.wrongCount)*100);
+        html += '<span style="display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink);border:1.5px solid #E3E0D8;">';
+        html += '<span style="font-size:11px;background:var(--graphite);color:#fff;border-radius:42%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;">'+t[1]+'</span>';
+        html += ' '+esc(t[0])+' <span style="color:var(--muted);font-size:11px;">('+pct+'% of wrong)</span></span>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  var worst = sorted[0];
+  html += '<div class="insight" style="border-left-color:var(--bad);margin-top:12px;">';
+  html += '<div class="label">Biggest Misconception</div>';
+  html += '<div class="value">'+esc(worst.label)+' — '+worst.wrongRate+'% wrong</div>';
+  html += '<div class="detail">This question confused '+worst.wrongCount+' out of '+worst.total+' students. Focus re-teach here.</div></div>';
+  content.innerHTML = html;
 }
 
 function renderHeatmap(rows) {
@@ -875,14 +1064,29 @@ function renderHeatmap(rows) {
   wrap.innerHTML = html;
 }
 
+function fmtTime(s) {
+  if (s == null || s === '' || isNaN(parseInt(s))) return '—';
+  var secs = parseInt(s, 10);
+  var m = Math.floor(secs / 60); var sec = secs % 60;
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
 function renderActTable(rows) {
-  const sorted = [...rows].sort((a,b) => pct(b) - pct(a));
+  // Sort by % DESC, then timeTaken ASC (speed tie-breaker)
+  const sorted = [...rows].sort((a,b) => {
+    const pd = pct(b) - pct(a);
+    if (pd !== 0) return pd;
+    const ta = parseInt(a['Time Taken']||a['timeTaken']||'', 10);
+    const tb = parseInt(b['Time Taken']||b['timeTaken']||'', 10);
+    if (!isNaN(ta) && !isNaN(tb)) return ta - tb;
+    return 0;
+  });
   const tbody = document.getElementById("actBody");
   tbody.innerHTML = sorted.map((r,i) => {
     const p = pct(r); const name = r["Student Name"]||r["name"]||"";
+    const t = r['Time Taken']||r['timeTaken']||null;
     return `<tr><td><b>${i+1}</b></td><td>${esc(r["Class"]||"")}</td><td>${esc(r["PRN"]||"")}</td><td><b>${esc(name)}</b></td><td>${esc(r["Round / Mission"]||r["round"]||r["mission"]||"")}</td>
       <td>${r["Total Score"]||r["Score"]||r["score"]||""}/${r["Max Score"]||r["Max"]||r["max"]||""}</td>
-      <td>${badgeFor(p)}</td><td>${ratingFor(p)}</td></tr>`;
+      <td>${badgeFor(p)}</td><td style="font-variant-numeric:tabular-nums;color:var(--steel);">${fmtTime(t)}</td><td>${ratingFor(p)}</td></tr>`;
   }).join("");
 }
 

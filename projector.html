@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Leaderboard — Projector Mode</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -97,6 +98,10 @@
   @media (max-width:1100px){ .grid{grid-template-columns:1fr;} .stats{grid-template-columns:repeat(3,1fr);} }
   .fadefoot{text-align:center;color:var(--muted);font-size:12px;margin-top:2.4vh;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -116,13 +121,30 @@
     <label style="color:var(--steel-light);font-size:14px;font-weight:600;">Activity:</label>
     <select id="gameSel"><option value="all">All Activities</option></select>
     <label style="color:var(--steel-light);font-size:14px;font-weight:600;">Class:</label>
-    <select id="classSel"><option value="all">All Classes</option></select>
+    <select id="classSel">
+      <option value="all">All Classes</option>
+      <option value="FY">FY — First Year</option>
+      <option value="SY">SY — Second Year</option>
+      <option value="TY">TY — Third Year</option>
+      <option value="Final Year">Final Year</option>
+    </select>
     <button class="btn copper" id="refreshBtn">↻ Refresh now</button>
+    <button class="btn" id="qrBtn" disabled title="Select an activity to show QR">📱 QR</button>
     <span class="refresh-note" id="refreshNote">Next refresh in 20s</span>
   </div>
 
+  <!-- QR Overlay -->
+  <div id="qrOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;cursor:pointer;" onclick="closeQR()">
+    <div style="background:#fff;border-radius:20px;padding:28px;text-align:center;" onclick="event.stopPropagation()">
+      <div id="qrCanvas"></div>
+      <div id="qrLabel" style="margin-top:14px;font-family:Fraunces,serif;font-size:20px;font-weight:700;color:#1C2B33;"></div>
+      <div id="qrUrl" style="margin-top:6px;font-size:13px;color:#5C7079;word-break:break-all;max-width:320px;"></div>
+    </div>
+    <div style="color:#B0C4CC;font-size:14px;">Tap anywhere outside to close</div>
+  </div>
+
   <div id="stage">
-    <div class="empty"><div class="big">Connecting to results sheet…</div>Waiting for the first submissions to come in.</div>
+    <div class="empty"><div class="big">Connecting to Database.</div>Waiting for the first submissions to come in.</div>
   </div>
 
   <div class="fadefoot">MMT Activities System · Projector Mode — leave this open on the classroom screen. Data updates automatically as students submit.</div>
@@ -130,9 +152,20 @@
 
 <script>
 // ============================================================
-//  CONFIG — same Google Apps Script endpoint as the dashboard
+//  CONFIG — Firebase
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMKRviywwQcxb1-rsMztF6aLSyV65punBpF3bPgM3Da49w2vsjfBeIORa3bkUYRCKm/exec";
+const firebaseConfig = {
+  apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+  authDomain: "activity-2026.firebaseapp.com",
+  projectId: "activity-2026",
+  storageBucket: "activity-2026.firebasestorage.app",
+  messagingSenderId: "384955850563",
+  appId: "1:384955850563:web:6ea833f95a6300845759f6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
 const REFRESH_SECS = 20;   // auto-refresh interval
 const TOP_N = 12;          // leaderboard rows to show
 
@@ -161,26 +194,20 @@ function keyOf(r){ return [nameOf(r),gameOf(r),roundOf(r),dateOf(r),timeOf(r),sc
 //  DATA FETCH
 // ============================================================
 async function fetchData(){
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
   try {
-    const res = await fetch(SCRIPT_URL + "?action=getData", { signal: controller.signal, cache: "no-store" });
-    clearTimeout(timer);
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch(e){ throw new Error("Bad response from sheet (not JSON). Check the Apps Script deployment."); }
-    DATA = json && json.rows ? json : { headers: [], rows: [] };
+    const snap = await db.collection("submissions").get();
+    let rows = [];
+    snap.forEach(doc => rows.push(doc.data()));
+    DATA = { rows: rows, headers: [] };
     refreshFilters();
     render();
     firstLoad = false;
-  } catch(err){
-    clearTimeout(timer);
-    const msg = err.name === "AbortError" ? "Request timed out (12s). The script may be slow or unreachable." : err.message;
+  } catch(err) {
+    // Keep error handling but remove the timeout AbortController stuff since Firestore handles its own networking
     if (firstLoad) {
       document.getElementById("stage").innerHTML =
-        `<div class="err"><h3>Could not connect</h3><p>${esc(msg)}</p><button class="btn" onclick="pull()">Retry</button></div>`;
+        `<div class="err"><h3>Could not connect</h3><p>${err.message}</p><button class="btn" onclick="fetchData()">Retry</button></div>`;
     }
-    // if not first load, keep showing the last good data silently
   }
 }
 
@@ -221,6 +248,8 @@ function filteredRows(){
 }
 
 // Best attempt per student (highest percent) for the leaderboard
+function timeTakenOf(r){ return parseInt(r['Time Taken']||r['timeTaken']||'', 10); }
+function fmtTime(s){ if(isNaN(s)) return ''; var m=Math.floor(s/60),sec=s%60; return m+':'+(sec<10?'0':'')+sec; }
 function bestPerStudent(rows){
   const map = {};
   rows.forEach(r => {
@@ -228,7 +257,13 @@ function bestPerStudent(rows){
     const p = pctOf(r);
     if (!map[n] || p > map[n]._p) map[n] = Object.assign({}, r, { _p: p });
   });
-  return Object.values(map).sort((a,b) => b._p - a._p);
+  // Sort by % DESC, then timeTaken ASC (faster = higher rank when tied)
+  return Object.values(map).sort((a,b) => {
+    if (b._p !== a._p) return b._p - a._p;
+    const ta = timeTakenOf(a), tb = timeTakenOf(b);
+    if (!isNaN(ta) && !isNaN(tb)) return ta - tb;
+    return 0;
+  });
 }
 
 function render(){
@@ -270,7 +305,7 @@ function render(){
       <div class="rank">${medal || (i+1)}</div>
       <div class="who">
         <div class="nm">${esc(nameOf(r))}</div>
-        <div class="meta"><b>${esc(classOf(r)||"—")}</b> · ${esc(gameOf(r))}${roundOf(r)?` · ${esc(roundOf(r))}`:""}</div>
+        <div class="meta"><b>${esc(classOf(r)||'—')}</b> · ${esc(gameOf(r))}${roundOf(r)?` · ${esc(roundOf(r))}`:''}${!isNaN(timeTakenOf(r))?' · ⚡ '+fmtTime(timeTakenOf(r)):''}</div>
       </div>
       <div class="sc">
         <div class="pct ${pctClass(p)}">${p}%</div>
@@ -333,8 +368,47 @@ function render(){
 function pull(){ countdown = REFRESH_SECS; fetchData(); }
 
 document.getElementById("refreshBtn").addEventListener("click", pull);
-document.getElementById("gameSel").addEventListener("change", e => { gameFilter = e.target.value; render(); });
+document.getElementById("gameSel").addEventListener("change", e => { gameFilter = e.target.value; updateQrBtn(); render(); });
 document.getElementById("classSel").addEventListener("change", e => { classFilter = e.target.value; render(); });
+
+// QR Code
+let _qrInstance = null;
+function updateQrBtn() {
+  const btn = document.getElementById('qrBtn');
+  btn.disabled = (gameFilter === 'all');
+}
+function showQR() {
+  if (gameFilter === 'all') return;
+  const base = location.href.replace(/[^/]*$/, '');
+  // Find the file for the selected game from DATA
+  const rows = DATA.rows || [];
+  // We'll just use the game name as a search query on the hub
+  const url = base + 'index.html';
+  const label = gameFilter;
+  const qrUrl = base + encodeURIComponent(gameFilter.toLowerCase().replace(/[^a-z0-9]+/g,'-')) + '.html';
+
+  document.getElementById('qrLabel').textContent = label;
+  document.getElementById('qrUrl').textContent = url;
+  document.getElementById('qrCanvas').innerHTML = '';
+  try {
+    _qrInstance = new QRCode(document.getElementById('qrCanvas'), {
+      text: url,
+      width: 280,
+      height: 280,
+      colorDark: '#1C2B33',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) {}
+  const overlay = document.getElementById('qrOverlay');
+  overlay.style.display = 'flex';
+}
+function closeQR() {
+  document.getElementById('qrOverlay').style.display = 'none';
+  document.getElementById('qrCanvas').innerHTML = '';
+  _qrInstance = null;
+}
+document.getElementById('qrBtn').addEventListener('click', showQR);
 
 setInterval(() => {
   countdown--;
