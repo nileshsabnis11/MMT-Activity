@@ -194,7 +194,6 @@
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
-  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -335,7 +334,7 @@ function renderOverview() {
     gRows.forEach(r => {
       const d = r["Date"] || "";
       if (d) {
-        const parts = d.split("-");
+        const parts = d.replace(/\//g, "-").split("-");
         if (parts.length === 3) monthSet.add(parts[2] + "-" + parts[1]); // YYYY-MM
       }
     });
@@ -426,7 +425,7 @@ function renderActivityCards() {
     // Month key: YYYY-MM from dd-MM-yyyy
     let monthKey = "";
     if (latestDate) {
-      const p = latestDate.split("-");
+      const p = latestDate.replace(/\//g, "-").split("-");
       if (p.length === 3) monthKey = p[2]+"-"+p[1];
     }
     return { g, gRows, gStudents, gAvg, rounds, latestDate, latestTime, monthKey };
