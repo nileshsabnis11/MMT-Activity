@@ -319,7 +319,9 @@
             .panel { padding: 16px 12px !important; }
             .chip { font-size: 13.5px !important; }
         }
-    </style>
+    
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: '[  ] '; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
+</style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>

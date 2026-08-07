@@ -97,6 +97,8 @@
 
   @media (max-width:1100px){ .grid{grid-template-columns:1fr;} .stats{grid-template-columns:repeat(3,1fr);} }
   .fadefoot{text-align:center;color:var(--muted);font-size:12px;margin-top:2.4vh;}
+
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: '[  ] '; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Showcase — RIT</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--graphite:#1C2B33;--graphite2:#142027;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--graphite);font-family:'Inter',sans-serif;min-height:100vh;padding:0;}
+
+/* Hero Section */
+.hero{background:linear-gradient(135deg, var(--graphite2) 0%, var(--graphite) 50%, var(--steel) 100%);padding:60px 24px 50px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 30% 50%, rgba(217,142,59,0.08) 0%, transparent 60%);pointer-events:none;}
+.hero .eyebrow{font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--copper);margin-bottom:14px;}
+.hero h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(28px,5vw,44px);margin-bottom:10px;line-height:1.15;}
+.hero .sub{color:#B0C4CC;font-size:16px;max-width:600px;margin:0 auto 8px;}
+.hero .college{color:var(--copper);font-weight:600;font-size:14px;margin-top:16px;letter-spacing:.04em;}
+
+/* Grid */
+.grid-wrap{max-width:1000px;margin:0 auto;padding:30px 20px 60px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:20px;}
+
+/* Cards */
+.card{background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.12);transition:transform .2s, box-shadow .2s;cursor:pointer;text-decoration:none;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.card::after{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--copper);border-radius:16px 16px 0 0;}
+.card .type-badge{display:inline-block;background:var(--card);color:var(--steel);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:6px;margin-bottom:14px;align-self:flex-start;}
+.card h3{font-family:'Fraunces',serif;color:var(--ink);font-size:18px;margin-bottom:8px;line-height:1.3;}
+.card .file{font-size:12px;color:var(--muted);margin-bottom:18px;}
+.card .demo-label{margin-top:auto;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--copper);transition:gap .2s;}
+.card:hover .demo-label{gap:10px;}
+
+/* Loading */
+.loading{text-align:center;padding:60px 20px;color:#B0C4CC;font-size:16px;}
+.loading .spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--copper);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Empty */
+.empty{text-align:center;padding:60px;color:var(--muted);font-size:15px;}
+
+/* Footer */
+.footer{text-align:center;padding:20px;font-size:12px;color:#5C7079;background:var(--graphite2);}
+
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: "[  ] "; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="hero">
+  <p class="eyebrow">Rajarambapu Institute of Technology</p>
+  <h1>Interactive Classroom Activities</h1>
+  <p class="sub">Gamified learning experiences designed for the Department of Robotics & Automation</p>
+  <p class="college">Department of Robotics & Automation</p>
+</div>
+
+<div class="grid-wrap">
+  <div id="grid" class="grid">
+    <div class="loading" id="loadingMsg">
+      <div class="spinner"></div>
+      Loading activities...
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  &copy; 2026 Prof. Nilesh Vijay Sabnis (9890880549) — Rajarambapu Institute of Technology
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+  authDomain: "activity-2026.firebaseapp.com",
+  projectId: "activity-2026",
+  storageBucket: "activity-2026.firebasestorage.app",
+  messagingSenderId: "384955850563",
+  appId: "1:384955850563:web:6ea833f95a6300845759f6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// Map activity file names to human-friendly type labels
+function guessType(file) {
+  file = (file || "").toLowerCase();
+  if (file.includes("selector") || file.includes("selection")) return "Type A — Selection Challenge";
+  if (file.includes("detective")) return "Type B — Detective Quiz";
+  if (file.includes("sort") || file.includes("classify")) return "Type C — Sort & Classify";
+  if (file.includes("rank") || file.includes("order")) return "Type D — Rank & Order";
+  if (file.includes("myth") || file.includes("buster")) return "Type E — Myth Buster";
+  if (file.includes("match") || file.includes("connection")) return "Type F — Connection Match";
+  if (file.includes("scenario") || file.includes("diagnosis")) return "Type G — Scenario Diagnosis";
+  if (file.includes("builder") || file.includes("process")) return "Type H — Process Builder";
+  if (file.includes("hotspot") || file.includes("label")) return "Type I — Hotspot / Label";
+  if (file.includes("equation")) return "Type J — Equation Challenge";
+  if (file.includes("robot")) return "Type A — Selection Challenge";
+  return "Interactive Activity";
+}
+
+function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function prettifyName(name, file) {
+  if (name && name !== file) return name;
+  // Turn "build-a-robot" into "Build A Robot"
+  return (file || "unknown").replace(".html","").replace(/[-_]/g," ").replace(/\b\w/g, l => l.toUpperCase());
+}
+
+db.ref("config/main").once("value").then(snap => {
+  const data = snap.val();
+  const activities = (data && data.activities) || [];
+  const grid = document.getElementById("grid");
+  document.getElementById("loadingMsg").remove();
+
+  if (activities.length === 0) {
+    grid.innerHTML = '<div class="empty">No activities configured yet.</div>';
+    return;
+  }
+
+  let html = "";
+  activities.forEach(a => {
+    const name = prettifyName(a.name, a.file);
+    const type = guessType(a.file);
+    const demoUrl = (a.file || "#") + "?mode=demo";
+    html += `
+      <a class="card" href="${esc(demoUrl)}" target="_blank">
+        <span class="type-badge">${esc(type)}</span>
+        <h3>${esc(name)}</h3>
+        <p class="file">${esc(a.file || "")}</p>
+        <span class="demo-label">Launch Demo →</span>
+      </a>
+    `;
+  });
+
+  grid.innerHTML = html;
+});
+</script>
+</body>
+</html>

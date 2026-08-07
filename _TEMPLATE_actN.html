@@ -76,6 +76,8 @@ input:focus,select:focus{outline:none;border-color:var(--copper);}
     .chip { font-size: 13.5px !important; }
   }
 
+
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: '[  ] '; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -181,22 +183,22 @@ function renderStart(){
     '<div class="panel">' +
       '<h2>Before you begin</h2>' +
       '<p class="inst">Enter your details, then start the activity.</p>' +
-      '<label for="nm">Your Full Name</label>' +
-      '<input type="text" id="nm" placeholder="e.g. Priya Sharma" value="' + esc(state.name) + '">' +
-      '<label for="cl">Class</label>' +
-      '<select id="cl">' +
+      '<label for="nameInput">Your Full Name</label>' +
+      '<input type="text" id="nameInput" placeholder="e.g. Priya Sharma" value="' + esc(state.name) + '">' +
+      '<label for="classInput">Class</label>' +
+      '<select id="classInput">' +
         '<option value=""' + (state.cls ? '' : ' selected') + ' disabled>Select your year…</option>' +
         '<option value="FY"' + (state.cls==="FY" ? ' selected' : '') + '>FY — First Year</option>' +
         '<option value="SY"' + (state.cls==="SY" ? ' selected' : '') + '>SY — Second Year</option>' +
         '<option value="TY"' + (state.cls==="TY" ? ' selected' : '') + '>TY — Third Year</option>' +
         '<option value="Final Year"' + (state.cls==="Final Year" ? ' selected' : '') + '>Final Year</option>' +
       '</select>' +
-      '<label for="pr">PRN / Roll No.</label>' +
-      '<input type="text" id="pr" placeholder="e.g. 2023001234" value="' + esc(state.prn) + '">' +
+      '<label for="prnInput">PRN / Roll No.</label>' +
+      '<input type="text" id="prnInput" placeholder="e.g. 2023001234" value="' + esc(state.prn) + '">' +
       '<p class="warn-msg hidden" id="warn">Please fill in Name, Class, and PRN before starting.</p>' +
       '<button class="btn" id="startBtn">Start Activity</button>' +
     '</div>';
-  var nm=document.getElementById("nm"), cl=document.getElementById("cl"), pr=document.getElementById("pr");
+  var nm=document.getElementById("nameInput"), cl=document.getElementById("classInput"), pr=document.getElementById("prnInput");
   nm.oninput=function(){ state.name=nm.value; };
   cl.onchange=function(){ state.cls=cl.value; };
   pr.oninput=function(){ state.prn=pr.value; };

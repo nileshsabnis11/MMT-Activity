@@ -86,6 +86,8 @@ input:focus{outline:none;border-color:var(--copper);}
     .panel { padding: 16px 12px !important; }
     .chip { font-size: 13.5px !important; }
   }
+
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: '[  ] '; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -109,9 +111,11 @@ input:focus{outline:none;border-color:var(--copper);}
       <h2>Quick Launch</h2>
       <p class="row-file" style="margin-bottom:14px;">Open these on the classroom screen during the session.</p>
       <div class="actions" style="margin-top:0;">
-        <a class="btn" href="projector.html" target="_blank" style="text-decoration:none;">&#128250; Projector / Live Mode</a>
-        <a class="btn btn-ghost" href="dashboard.html" target="_blank" style="text-decoration:none;">&#128202; Instructor Dashboard</a>
+        <a class="btn" href="projector.html" target="_blank" style="text-decoration:none;">📺 Projector / Live Mode</a>
+        <a class="btn btn-ghost" href="dashboard.html" target="_blank" style="text-decoration:none;">📊 Instructor Dashboard</a>
         <a class="btn btn-ghost" href="generator.html" target="_blank" style="text-decoration:none;">✨ Create Activity</a>
+        <a class="btn btn-ghost" href="showcase.html" target="_blank" style="text-decoration:none; color:var(--green); border-color:var(--green);">🎯 Showcase for Management</a>
+        <a class="btn btn-ghost" href="data-manager.html" target="_blank" style="text-decoration:none; color:var(--bad); border-color:var(--bad);">⚙️ Database Manager</a>
       </div>
     </div>
     <div class="panel">
@@ -170,7 +174,6 @@ input:focus{outline:none;border-color:var(--copper);}
 const firebaseConfig = {
   apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
   authDomain: "activity-2026.firebaseapp.com",
-  databaseURL: "https://activity-2026-default-rtdb.firebaseio.com",
   projectId: "activity-2026",
   storageBucket: "activity-2026.firebasestorage.app",
   messagingSenderId: "384955850563",
@@ -219,6 +222,7 @@ function renderList(){
           '<button data-i="' + i + '" data-v="YES" class="' + (vs==='YES'?'active-on':'') + '">ON</button>' +
         '</div>' +
         '<select class="timer-sel" data-i="' + i + '">' + timerOpts + '</select>' +
+        '<button class="del-btn" data-i="' + i + '" title="Remove from Control Panel" style="background:transparent;border:none;cursor:pointer;color:#A23B3B;padding:4px 6px;font-size:18px;line-height:1;border-radius:4px;">🗑️</button>' +
       '</div>' +
     '</div>';
   });
@@ -244,6 +248,16 @@ function renderList(){
     sel.addEventListener('change', function(){
       var idx = +sel.getAttribute('data-i');
       activities[idx].timerMinutes = parseInt(sel.value, 10) || 0;
+    });
+  });
+  // Delete buttons
+  Array.prototype.forEach.call(box.querySelectorAll('button.del-btn'), function(btn){
+    btn.addEventListener('click', function(){
+      if (confirm("Are you sure you want to remove this activity from your Control Panel list? (You still need to click Save Changes to finalize)")) {
+        var idx = +btn.getAttribute('data-i');
+        activities.splice(idx, 1);
+        renderList();
+      }
     });
   });
   renderPractice();

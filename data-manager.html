@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Database Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--graphite:#1C2B33;--copper:#D98E3B;--steel:#3E5C67;--card:#F4F2EE;--ink:#23343C;--muted:#5C7079;--green:#3B9D6B;--bad:#A23B3B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--graphite);font-family:'Inter',sans-serif;min-height:100vh;padding:40px 16px;}
+.wrap{max-width:900px;margin:0 auto;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--copper);margin-bottom:10px;}
+h1{font-family:'Fraunces',serif;color:#fff;font-size:clamp(24px,4vw,34px);margin-bottom:8px;}
+.sub{color:#B0C4CC;font-size:15px;margin-bottom:28px;}
+.panel{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.18);margin-bottom:18px;}
+.panel h2{font-family:'Fraunces',serif;font-size:18px;color:var(--ink);margin-bottom:16px;}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+input[type=text],input[type=password],select{width:100%;padding:12px 14px;border:1.5px solid #d8d4cc;border-radius:10px;font-family:inherit;font-size:15px;color:var(--ink);margin-bottom:14px;}
+input:focus,select:focus{outline:none;border-color:var(--copper);}
+.btn{background:var(--copper);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:filter .15s;}
+.btn:hover{filter:brightness(1.05);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--copper);border:1.5px solid var(--copper);}
+.btn-steel{background:var(--steel);}
+.btn-danger{background:var(--bad);}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.hidden{display:none !important;}
+#gate .panel{max-width:380px;margin:60px auto 0;}
+.loading{color:var(--muted);font-size:14px;padding:10px 0;font-weight:600;}
+
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:15px;}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #eee;}
+th{font-weight:700;color:var(--steel);position:sticky;top:0;background:#fff;z-index:10;font-size:13px;}
+tr:hover{background:#f9f9f9;}
+.msg{font-size:13px;font-weight:600;}
+.msg.err{color:#C0392B;}
+
+/* Scrollbar */
+.table-container { max-height: 500px; overflow-y: auto; border: 1.5px solid #d8d4cc; border-radius: 10px; }
+.table-container::-webkit-scrollbar { width: 8px; }
+.table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+.table-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 8px; }
+.table-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+@media print { body { background: white !important; color: black !important; } .name-gate, .btn, button, .top-bar, .actions { display: none !important; } .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; } .hidden { display: block !important; } .mcq-option::before { content: '[  ] '; font-family: monospace; } .category-bucket { border: 1px solid #000 !important; min-height: 150px; } }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="wrap" id="gateWrap">
+  <div id="gate">
+    <div class="panel">
+      <h2>Admin Access</h2>
+      <label>Enter Master Password</label>
+      <input type="password" id="pw" placeholder="••••••••">
+      <button class="btn" id="unlockBtn" style="width:100%;">Unlock Database Manager</button>
+      <div id="gateMsg" class="msg err hidden" style="margin-top:14px;text-align:center;">Incorrect password.</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap hidden" id="mainWrap">
+  <p class="eyebrow">Instructor Only</p>
+  <h1>Database Manager</h1>
+  <p class="sub">Backup, restore, and permanently delete student submissions.</p>
+  
+  <div class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px;">
+      
+      <div style="flex:1; min-width:260px;">
+        <label>Filter by Activity</label>
+        <select id="activityFilter" disabled style="margin-bottom:0;">
+          <option value="ALL">Loading activities...</option>
+        </select>
+        
+        <label style="margin-top:14px;">Search Student</label>
+        <input type="text" id="searchInput" placeholder="Type name, PRN, or class..." disabled style="margin-bottom:0;">
+        
+        <div class="actions" style="margin-top:14px;">
+          <button id="deleteEntireBtn" class="btn btn-danger hidden">🚨 Delete Entire Activity</button>
+        </div>
+      </div>
+      
+      <div style="flex:1; min-width:260px; display:flex; flex-direction:column; align-items:flex-end;">
+        <span id="loading" class="loading">Connecting to database...</span>
+        <div class="actions" style="justify-content:flex-end; margin-bottom:10px;">
+          <button id="backupBtn" class="btn btn-steel">💾 Backup Data</button>
+          <button id="restoreBtn" class="btn btn-ghost" style="color:var(--steel);border-color:var(--steel);">📥 Restore</button>
+          <input type="file" id="restoreFile" style="display:none;" accept=".json">
+        </div>
+        <button id="deleteBtn" class="btn btn-danger" disabled>🗑️ Delete Selected (0)</button>
+      </div>
+
+    </div>
+
+    <div class="table-container" style="margin-top:20px;">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
+            <th>Date</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th>PRN</th>
+            <th>Round / Mission</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">Waiting for data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBsk-Pfqd26dFXMU04ye-gfA3uYSKR5Aps",
+  authDomain: "activity-2026.firebaseapp.com",
+  projectId: "activity-2026",
+  storageBucket: "activity-2026.firebasestorage.app",
+  messagingSenderId: "384955850563",
+  appId: "1:384955850563:web:6ea833f95a6300845759f6"
+};
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+var PASSWORD = "mmt2026";
+document.getElementById("unlockBtn").addEventListener("click", tryUnlock);
+document.getElementById("pw").addEventListener("keydown", function(e){ if(e.key === "Enter") tryUnlock(); });
+
+function tryUnlock(){
+  if(document.getElementById("pw").value === PASSWORD){
+    document.getElementById("gateWrap").classList.add("hidden");
+    document.getElementById("mainWrap").classList.remove("hidden");
+    loadData();
+  } else { 
+    document.getElementById("gateMsg").classList.remove("hidden"); 
+  }
+}
+
+let allData = {};
+let currentFilter = "ALL";
+let currentSearch = "";
+
+function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderTable() {
+  const tbody = document.getElementById("tableBody");
+  let html = "";
+  let count = 0;
+  
+  for (let key in allData) {
+    let row = allData[key];
+    let game = row.Game || row.game || row.ActivityName || "";
+    if (currentFilter !== "ALL" && game !== currentFilter) continue;
+    
+    let date = row.Date || "";
+    let name = row["Student Name"] || row.name || "";
+    let cls = row.Class || row.cls || "";
+    let prn = row.PRN || row.prn || "";
+    let round = row.round || row["Round / Mission"] || row.Mission || "";
+    let score = (row["Total Score"] || row.score || 0) + " / " + (row["Max Score"] || row.max || 0);
+
+    // Apply search filter
+    if (currentSearch) {
+      const searchStr = currentSearch.toLowerCase();
+      const matchName = String(name).toLowerCase().includes(searchStr);
+      const matchPrn = String(prn).toLowerCase().includes(searchStr);
+      const matchCls = String(cls).toLowerCase().includes(searchStr);
+      if (!matchName && !matchPrn && !matchCls) continue;
+    }
+
+    html += `
+      <tr>
+        <td><input type="checkbox" class="row-check" style="transform:scale(1.2);cursor:pointer;" data-key="${esc(key)}"></td>
+        <td style="font-size:13px;color:var(--muted);">${esc(date)}</td>
+        <td><b style="color:var(--ink);">${esc(name)}</b></td>
+        <td style="color:var(--muted);">${esc(cls)}</td>
+        <td style="color:var(--muted);">${esc(prn)}</td>
+        <td style="color:var(--steel);font-weight:600;">${esc(round)}</td>
+        <td style="color:var(--copper);font-weight:700;">${esc(score)}</td>
+      </tr>
+    `;
+    count++;
+  }
+  
+  if (count === 0) {
+    html = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No entries found.</td></tr>`;
+  }
+  
+  tbody.innerHTML = html;
+  
+  document.querySelectorAll('.row-check').forEach(chk => {
+    chk.addEventListener('change', updateDeleteButton);
+  });
+  document.getElementById("selectAll").checked = false;
+  updateDeleteButton();
+}
+
+function updateDeleteButton() {
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const btn = document.getElementById("deleteBtn");
+  if (checked > 0) {
+    btn.textContent = `🗑️ Delete Selected (${checked})`;
+    btn.disabled = false;
+  } else {
+    btn.textContent = `🗑️ Delete Selected (0)`;
+    btn.disabled = true;
+  }
+}
+
+document.getElementById("selectAll").addEventListener("change", function(e) {
+  const isChecked = e.target.checked;
+  document.querySelectorAll('.row-check').forEach(chk => {
+    chk.checked = isChecked;
+  });
+  updateDeleteButton();
+});
+
+document.getElementById("activityFilter").addEventListener("change", function(e) {
+  currentFilter = e.target.value;
+  const delEnt = document.getElementById("deleteEntireBtn");
+  if (currentFilter === "ALL") {
+    delEnt.classList.add("hidden");
+  } else {
+    delEnt.classList.remove("hidden");
+  }
+  renderTable();
+});
+
+document.getElementById("searchInput").addEventListener("input", function(e) {
+  currentSearch = e.target.value;
+  renderTable();
+});
+
+document.getElementById("deleteEntireBtn").addEventListener("click", async function() {
+  if (currentFilter === "ALL") return;
+  if (!confirm(`🚨 EXTREME WARNING 🚨\n\nYou are about to PERMANENTLY DELETE every single submission for "${currentFilter}" AND completely remove it from your Control Panel.\n\nThis will completely erase this activity from existence. Are you absolutely sure?`)) return;
+  
+  this.disabled = true;
+  this.textContent = "Wiping...";
+  
+  try {
+    let promises = [];
+    for (let key in allData) {
+      let game = allData[key].Game || allData[key].game || allData[key].ActivityName;
+      if (game === currentFilter) promises.push(db.ref("submissions/" + key).remove());
+    }
+    const snap = await db.ref("config/main").once("value");
+    if (snap.exists()) {
+      let cfg = snap.val();
+      if (cfg.activities) {
+        cfg.activities = cfg.activities.filter(a => a.name !== currentFilter && a.file !== currentFilter);
+        promises.push(db.ref("config/main").set(cfg));
+      }
+    }
+    
+    await Promise.all(promises);
+    alert(`Successfully wiped "${currentFilter}" from the system.`);
+    
+    currentFilter = "ALL";
+    this.classList.add("hidden");
+    this.disabled = false;
+    this.textContent = "🚨 Delete Entire Activity";
+  } catch (err) {
+    alert("Error deleting activity: " + err.message);
+    this.disabled = false;
+    this.textContent = "🚨 Delete Entire Activity";
+  }
+});
+
+document.getElementById("deleteBtn").addEventListener("click", async function() {
+  const checkedBoxes = document.querySelectorAll('.row-check:checked');
+  if (checkedBoxes.length === 0) return;
+  if (!confirm(`WARNING: You are about to permanently delete ${checkedBoxes.length} student submission(s). This cannot be undone. Are you sure?`)) return;
+  
+  this.disabled = true;
+  this.textContent = "Deleting...";
+  
+  try {
+    let promises = [];
+    checkedBoxes.forEach(chk => {
+      promises.push(db.ref("submissions/" + chk.getAttribute('data-key')).remove());
+    });
+    await Promise.all(promises);
+  } catch (err) {
+    alert("Error deleting: " + err.message);
+  }
+});
+
+function loadData() {
+  db.ref("submissions").on("value", snap => {
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("activityFilter").disabled = false;
+    document.getElementById("searchInput").disabled = false;
+    
+    allData = snap.val() || {};
+    
+    let activities = new Set();
+    for (let key in allData) {
+      let game = allData[key].Game || allData[key].game || allData[key].ActivityName;
+      if (game) activities.add(game);
+    }
+    
+    const filter = document.getElementById("activityFilter");
+    let filterHtml = `<option value="ALL">All Activities (${Object.keys(allData).length} total)</option>`;
+    Array.from(activities).sort().forEach(act => {
+      filterHtml += `<option value="${esc(act)}">${esc(act)}</option>`;
+    });
+    filter.innerHTML = filterHtml;
+    filter.value = currentFilter;
+    
+    renderTable();
+  });
+}
+
+document.getElementById("backupBtn").addEventListener("click", async function() {
+  try {
+    this.textContent = "Backing up...";
+    const subSnap = await db.ref("submissions").once("value");
+    const cfgSnap = await db.ref("config/main").once("value");
+    const backupData = { submissions: subSnap.val() || {}, config: cfgSnap.val() || {} };
+    
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "MMT_Database_Backup_" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.textContent = "💾 Backup Data";
+  } catch(e) {
+    alert("Backup failed: " + e.message);
+    this.textContent = "💾 Backup Data";
+  }
+});
+
+document.getElementById("restoreBtn").addEventListener("click", function() {
+  document.getElementById("restoreFile").click();
+});
+
+document.getElementById("restoreFile").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(event) {
+    try {
+      const data = JSON.parse(event.target.result);
+      if (!data.submissions) throw new Error("Invalid backup file.");
+      if (!confirm("WARNING: Overwriting current database with backup. Continue?")) {
+        document.getElementById("restoreFile").value = "";
+        return;
+      }
+      document.getElementById("restoreBtn").textContent = "Restoring...";
+      await db.ref("submissions").set(data.submissions);
+      if (data.config) await db.ref("config/main").set(data.config);
+      alert("Database successfully restored!");
+      document.getElementById("restoreBtn").textContent = "📥 Restore";
+      document.getElementById("restoreFile").value = "";
+    } catch(err) {
+      alert("Error restoring data: " + err.message);
+      document.getElementById("restoreBtn").textContent = "📥 Restore";
+      document.getElementById("restoreFile").value = "";
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>

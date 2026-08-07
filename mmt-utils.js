@@ -67,7 +67,10 @@
 
   // Low-level POST (now uses Firestore instead of Apps Script)
   function post(url, payload) {
-    if (typeof firebase === 'undefined') return Promise.resolve({ sent: false, reason: "no-firebase" });
+   if (typeof firebase === 'undefined') return Promise.resolve({ sent: false, reason: "no-firebase" });
+
+    // Demo mode: silently skip all database writes
+    if (isDemo()) { console.log("MMT Demo mode — DB write suppressed."); return Promise.resolve({ sent: false, reason: "demo" }); }
 
     // Use Realtime Database ServerValue.TIMESTAMP
     payload.serverTime = firebase.database.ServerValue.TIMESTAMP;
@@ -134,14 +137,18 @@
   /* ---------- 3. PRACTICE vs GRADED MODE ---------- */
 
   // ?mode=practice  → practice (retry allowed, NOT recorded to sheet)
+  // ?mode=demo      → demo (auto-skips student gate, suppresses DB writes)
   // anything else   → graded   (locked, recorded)
   function mode() {
     try {
       var m = new URLSearchParams(window.location.search).get("mode");
-      return (m && m.toLowerCase() === "practice") ? "practice" : "graded";
+      if (m && m.toLowerCase() === "practice") return "practice";
+      if (m && m.toLowerCase() === "demo") return "demo";
+      return "graded";
     } catch (e) { return "graded"; }
   }
-  function isPractice() { return mode() === "practice"; }
+  function isPractice() { return mode() === "practice" || mode() === "demo"; }
+  function isDemo() { return mode() === "demo"; }
 
   // A small banner element you can insert at the top of the page to make the
   // current mode obvious. Returns an HTMLElement (or null in graded mode).
@@ -506,4 +513,78 @@
     // set MMT._autoFlushUrl = SHEET_WEBHOOK_URL in your activity to auto-flush on load
     _autoFlushUrl: null,
   };
+
+  /* ---------- 5. STUDENT PROFILE "REMEMBER ME" ---------- */
+  // Auto-fills and auto-saves student Name / Class / PRN across all activities.
+  // Detects ALL known ID conventions used by different activity generators:
+  //   nameInput / classInput / prnInput        (prompt standard)
+  //   studentNameInput / classInput / prnInput  (early AI output)
+  //   student-name / student-class / student-prn (alternate AI output)
+  //   nm / cl / pr                               (legacy template)
+  document.addEventListener("DOMContentLoaded", function() {
+    var PROFILE_KEY = "mmt_student_profile";
+    var profile = {};
+    try { profile = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch(e) {}
+
+    function find() {
+      var ids = arguments;
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el) return el;
+      }
+      return null;
+    }
+
+    var n = find("nameInput", "studentNameInput", "student-name", "nm");
+    var c = find("classInput", "student-class", "cl");
+    var p = find("prnInput", "student-prn", "pr");
+
+    // Auto-fill from saved profile
+    if (n && profile.name) n.value = profile.name;
+    if (c && profile.cls)  c.value = profile.cls;
+    if (p && profile.prn)  p.value = profile.prn;
+
+    function saveProfile() {
+      if (n) profile.name = n.value.trim();
+      if (c) profile.cls  = c.value.trim();
+      if (p) profile.prn  = p.value.trim();
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch(e) {}
+    }
+
+    if (n) n.addEventListener("input",  saveProfile);
+    if (c) c.addEventListener("change", saveProfile);
+    if (p) p.addEventListener("input",  saveProfile);
+
+    // --- DEMO MODE: poll until inputs appear, then auto-fill ---
+    if (isDemo()) {
+      var demoAttempts = 0;
+      var demoTimer = setInterval(function() {
+        demoAttempts++;
+        var dn = find("nameInput", "studentNameInput", "student-name", "nm");
+        var dc = find("classInput", "student-class", "cl");
+        var dp = find("prnInput", "student-prn", "pr");
+
+        if (dn && dc && dp) {
+          clearInterval(demoTimer);
+          dn.value = "Demo User";
+          dc.value = "FY";
+          dp.value = "DEMO";
+          dn.dispatchEvent(new Event("input",  { bubbles: true }));
+          dc.dispatchEvent(new Event("change", { bubbles: true }));
+          dp.dispatchEvent(new Event("input",  { bubbles: true }));
+          // Poke common state patterns directly
+          if (typeof state !== "undefined") {
+            if ("name" in state)        state.name = "Demo User";
+            if ("studentName" in state)  state.studentName = "Demo User";
+            if ("cls" in state)          state.cls = "FY";
+            if ("studentClass" in state) state.studentClass = "FY";
+            if ("prn" in state)          state.prn = "DEMO";
+            if ("studentPrn" in state)   state.studentPrn = "DEMO";
+          }
+        }
+        if (demoAttempts > 50) clearInterval(demoTimer);
+      }, 100);
+    }
+  });
+
 })();
