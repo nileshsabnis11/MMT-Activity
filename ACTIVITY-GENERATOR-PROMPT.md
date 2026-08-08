@@ -9,7 +9,7 @@
 >    (You can paste notes, upload a PPT, or just describe the topic.)
 > 4. The AI will return one complete, ready-to-open `.html` file.
 >
-> The webhook URL, college branding, copyright line, student gate, scoring, and design system
+> The Firebase backend, college branding, copyright line, student gate, scoring, and design system
 > are all baked in below — so any AI produces the SAME quality and format every time.
 > Nothing else needs to be configured.
 
@@ -24,6 +24,27 @@ You create self-contained HTML interactive activities for classroom use. The use
 const COLLEGE_NAME = "Rajarambapu Institute of Technology";
 const DEPARTMENT   = "Robotics and Automation";
 ```
+
+## BACKEND — Firebase Realtime Database (the ONLY database)
+Results are written to **Firebase Realtime Database** (node `submissions`). There is **no Google
+Sheet and no Apps Script** anymore — do not generate any `results_collector.gs`, webhook URL,
+or `?action=...` endpoint. The Firebase config and SDK calls live inside `mmt-utils.js`; each
+activity only needs (a) the two Firebase `<script>` tags from **Head Includes** and (b) the
+`mmt-utils.js` include.
+
+`MMT.submitResult(dbEnabled, payload)` writes one row (a `push()` under the `submissions` node)
+to the Realtime Database. Its **first argument is a
+legacy enable-switch — it must be TRUTHY or the write is skipped.** Define one constant and
+reuse it everywhere (any truthy value works; `true` is clearest):
+```javascript
+const DB_ENABLED = true;                                  // Firebase is the database — keep truthy
+if (window.MMT) window.MMT._autoFlushUrl = DB_ENABLED;    // resend any queued results on load
+function submitResult(payload) {
+  return MMT.submitResult(DB_ENABLED, payload);
+}
+```
+Everywhere below that shows `MMT.submitResult(null, payload)`, pass `DB_ENABLED` instead —
+`null` is a no-op that silently records nothing.
 
 ## COPYRIGHT FOOTER (always include on every generated HTML)
 Add this line immediately before `</body>` in every activity file:
@@ -43,12 +64,21 @@ Add this line immediately before `</body>` in every activity file:
 
 ## STUDENT GATE (required on every activity)
 Before any activity starts, collect **Name + Class + PRN/Roll No.** (all three required, all three
-recorded in the results sheet). Do not start the tasks until all three fields are filled. The state
+recorded in the database). Do not start the tasks until all three fields are filled. The state
 object therefore carries `studentName`, `studentClass`, and `studentPrn` (or `name`/`cls`/`prn`).
+
+**CRITICAL: Use these EXACT element IDs** (required for the "Remember Me" profile feature):
+- Name input: `id="nameInput"`
+- Class dropdown: `id="classInput"`
+- PRN input: `id="prnInput"`
 
 **Class is a DROPDOWN, not a text box.** Use a `<select>` with exactly these four options
 (plain "FY", "SY", "TY", "Final Year" — do not add divisions/sections):
 ```html
+<label for="nameInput">Your Full Name</label>
+<input type="text" id="nameInput" placeholder="e.g. Priya Sharma" value="...">
+
+<label for="classInput">Class</label>
 <select id="classInput">
   <option value="" disabled ${!state.studentClass ? "selected" : ""}>Select your year…</option>
   <option value="FY" ${state.studentClass === "FY" ? "selected" : ""}>FY — First Year</option>
@@ -56,10 +86,19 @@ object therefore carries `studentName`, `studentClass`, and `studentPrn` (or `na
   <option value="TY" ${state.studentClass === "TY" ? "selected" : ""}>TY — Third Year</option>
   <option value="Final Year" ${state.studentClass === "Final Year" ? "selected" : ""}>Final Year</option>
 </select>
+
+<label for="prnInput">PRN / Roll No.</label>
+<input type="text" id="prnInput" placeholder="e.g. 2023001234" value="...">
 ```
 The `disabled` first option forces a real choice; `.name-gate` CSS must style `input, select`
 identically (same padding/border/radius/font/background) so the dropdown matches the text boxes.
 Read the value with `.value` (optionally `.trim()`) — never expect a custom typed class.
+
+> **"Remember Me" Student Profiles (PRO feature #6):** When `mmt-utils.js` is loaded, students'
+> name/class/PRN are auto-saved to `localStorage` key `mmt_student_profile` as they type, and
+> auto-filled on their next visit. This works silently in the background — no extra code needed
+> — as long as you use the exact IDs above (`nameInput`, `classInput`, `prnInput`). Shortened
+> or alternate IDs (like `id="nm"`) break this feature.
 
 ---
 
@@ -81,7 +120,7 @@ Students apply knowledge by selecting the correct option for each component/slot
 **Data model:**
 ```javascript
 const MATERIALS = { key: { name, tag, role, blurb } };
-const MISSIONS = [{ name, tag, brief, components: [{ key, label, ideal, acceptable:[], reason }] }];
+const MISSIONS = [{ name, tag, brief, hint, components: [{ key, label, ideal, acceptable:[], reason }] }]; // hint = round-level nudge (REQUIRED)
 let state = { screen:"start", missionIndex:0, choices:{}, studentName:"", missionScores:[] };
 ```
 
@@ -102,7 +141,7 @@ Students identify items from descriptive clues across multiple rounds.
 
 **Data model:**
 ```javascript
-const ROUNDS = [{ name, tag, intro, options:[], clues:[{ text, answer, why }] }];
+const ROUNDS = [{ name, tag, intro, hint, options:[], clues:[{ text, answer, why }] }]; // hint = round-level nudge (REQUIRED)
 let state = { screen:"start", roundIndex:0, answers:{}, roundScores:[], studentName:"" };
 ```
 
@@ -125,6 +164,7 @@ Students assign items into the correct category buckets.
 ```javascript
 const ROUNDS = [{
   name, intro,
+  hint: "round-level nudge (REQUIRED) — points at the sorting rule, not the answers",
   categories: ["Category A", "Category B", "Category C"],
   items: [{ name, correctCategory: "Category A", why: "explanation" }]
 }];
@@ -156,6 +196,7 @@ Students arrange items in the correct sequence or ranking.
 ```javascript
 const ROUNDS = [{
   name, intro,
+  hint: "round-level nudge (REQUIRED) — recall the ordering principle, not the order",
   orderLabel: "Lowest → Highest Melting Point",
   items: [
     { name: "Aluminum", correctPosition: 1, value: "660°C", why: "explanation" },
@@ -192,6 +233,7 @@ Students judge statements and see the real answer with a detailed explanation.
 const ROUNDS = [{
   name, intro,
   statements: [{
+    hint: "per-item nudge (REQUIRED unless a round-level hint is used)",
     text: "All metals are good conductors of heat.",
     answer: "Partially True",
     why: "Most metals conduct heat well, but bismuth and mercury are notably poor conductors compared to other metals."
@@ -225,6 +267,7 @@ Students match items from Column A to Column B in 1-to-1 pairs.
 ```javascript
 const ROUNDS = [{
   name, intro,
+  hint: "round-level nudge (REQUIRED) — how to reason about the matches, not the pairs",
   pairs: [
     { left: "Nitinol", right: "Shape Memory Alloy", why: "Nitinol (Nickel-Titanium) is the most widely used shape memory alloy." },
     { left: "Terfenol-D", right: "Magnetostrictive Material", why: "..." },
@@ -260,6 +303,7 @@ Students read a failure/problem scenario and identify what went wrong + the corr
 ```javascript
 const CASES = [{
   name, tag,
+  hint: "case-level nudge (REQUIRED) — which property/failure mode to focus on",
   scenario: "A warehouse robot's gripper arm snapped after 3 months of continuous use...",
   questions: [
     { prompt: "What most likely went wrong?", options: [...], answer: "...", why: "..." },
@@ -293,6 +337,7 @@ Students fill in the missing steps of a process by selecting from a pool of opti
 ```javascript
 const PROCESSES = [{
   name, intro,
+  hint: "process-level nudge (REQUIRED) — the logic of the sequence, not the steps",
   steps: [
     { text: "Raw ore is extracted from the mine", isBlank: false },
     { text: null, isBlank: true, answer: "Ore is crushed and ground into fine powder", why: "Crushing increases surface area for chemical processing." },
@@ -332,6 +377,7 @@ Students are shown an SVG diagram of a machine, robot, circuit, or structure. Th
 const DIAGRAMS = [{
   name: "Robot Arm Joints",
   intro: "Label the highlighted parts of this 6-DOF robot arm.",
+  hint: "diagram-level nudge (REQUIRED) — how to tell the parts apart, not their names",
   svgMarkup: `<svg viewBox="0 0 400 300">...your SVG path data...</svg>`,
   hotspots: [
     { id: 1, cx: 120, cy: 80, answer: "Base Joint", why: "The base joint allows full 360° rotation." },
@@ -370,6 +416,7 @@ Students complete engineering equations by selecting the correct variable, unit,
 const ROUNDS = [{
   name: "Stress & Strain",
   intro: "Complete the fundamental equations for mechanical stress and strain.",
+  hint: "round-level nudge (REQUIRED) — which quantities relate, not the symbols",
   equations: [
     {
       template: "σ = F / [BLANK_0]",   // [BLANK_N] marks each blank slot
@@ -405,6 +452,20 @@ let state = { screen:"start", roundIndex:0, filled:{}, roundScores:[], studentNa
 
 ## Design System (EXACT — same for ALL types)
 
+### 🖨️ PRINT WORKSHEET MODE (Required CSS)
+Always include this exact `@media print` CSS block so activities can be cleanly printed as fallback worksheets.
+```css
+@media print {
+  body { background: white !important; color: black !important; }
+  .name-gate, .btn, button, .top-bar, .actions { display: none !important; }
+  .mission-card, .round-card, .card { display: block !important; box-shadow: none !important; border: 1px solid #ccc !important; margin-bottom: 20px !important; page-break-inside: avoid; }
+  .hidden { display: block !important; }
+  /* Show empty checkboxes for printing */
+  .mcq-option::before { content: "[  ] "; font-family: monospace; }
+  .category-bucket { border: 1px solid #000 !important; min-height: 150px; }
+}
+```
+
 ### Head Includes (Fonts, Icons, Firebase)
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -412,7 +473,7 @@ let state = { screen:"start", roundIndex:0, filled:{}, roundScores:[], studentNa
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
 <!-- Firebase for Database -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 ```
 
 ### CSS Variables
@@ -500,11 +561,12 @@ Students sitting together must NOT see identical papers.
   random 6) with `MMT.pickPool(pool, 6)`. Each student effectively gets a different paper.
 
 ### 2. Result retry queue — never lose a score to bad WiFi
-Use `MMT.submitResult(url, payload)` instead of a bare fetch. On network failure it saves the
-result to `localStorage` and auto-resends on the next submit or page load. Reflect three states:
+Use `MMT.submitResult(DB_ENABLED, payload)` instead of a bare database call. The Realtime
+Database SDK queues writes locally while offline and syncs them when the connection returns,
+and `mmt-utils.js` adds a localStorage safety-queue on top. Reflect three states:
 ```javascript
-MMT.submitResult(null, payload).then(res => {
-  if (res.sent)        statusEl.textContent = "✓ Result sent to your instructor";
+MMT.submitResult(DB_ENABLED, payload).then(res => {
+  if (res.sent)        statusEl.textContent = "✓ Result saved";
   else if (res.queued) statusEl.textContent = "⏳ Offline — saved, will auto-send later";
   else                 statusEl.textContent = "⚠ Couldn't reach the database";
 });
@@ -515,7 +577,7 @@ MMT.submitResult(null, payload).then(res => {
 Default (no param) → **graded**: locked, recorded.
 const PRACTICE = MMT.isPractice();
 const banner = MMT.modeBanner(); if (banner) panel.appendChild(banner); // top of render()
-if (!PRACTICE) MMT.submitResult(null, payload);                         // results screen
+if (!PRACTICE) MMT.submitResult(DB_ENABLED, payload);                   // results screen
 ```
 Give the teacher both links: normal URL for assessment, `?mode=practice` for revision.
 
@@ -523,7 +585,7 @@ Give the teacher both links: normal URL for assessment, `?mode=practice` for rev
 On the FINAL screen (after all rounds), add a **⬇ Download Result Card** button that calls
 `MMT.downloadReportCard(cfg)`. It renders a printable PNG (student name, class, PRN,
 college/department, a score circle with percent, a rating, and a per-round breakdown) and
-triggers a download — no backend, no sheet write, purely client-side from data already on screen.
+triggers a download — no backend call, no database write, purely client-side from data already on screen.
 ```javascript
 // final screen — place next to the "Play Again"/"Restart" button
 cardBtn.addEventListener("click", () => {
@@ -544,8 +606,8 @@ reads as the main call to action.
 Let a stuck student reveal a hint. In **graded** mode a revealed hint **caps that question at
 50% of its marks** (floor of half — e.g. a 10-pt question maxes at 5, correct-with-hint earns 5,
 wrong still earns 0). In **practice** mode hints are **always free** and nothing is recorded.
-Every hinted question is tagged with a 💡 in the detail string so the sheet, dashboard, and
-backend all agree on the penalty.
+Every hinted question is tagged with a 💡 in the detail string so the stored record and the
+dashboard both show the penalty.
 
 **Where hints live in your data:** add a `hint:` string to each question (per-item hints — good
 for myth/statement or component activities) OR one `hint:` per round (round-level hints — good for
@@ -578,27 +640,29 @@ detailsArr.push(correct ? `[Q${idx+1}]: Correct${tag}` : `[Q${idx+1}]: Wrong${ta
 MMT.resetHints();   // call in startActivity, on retry, and when advancing to the next round
 ```
 
-> **Backend must agree:** `results_collector.gs` re-computes per-question marks from the ✅/❌
-> markers and **independently halves any question whose detail contains 💡**. So the penalty is
-> applied in TWO places off the same 💡 tag — the activity halves its own sent score AND the
-> backend halves on recompute. Keep the 💡 tag in the detail string or the two will disagree.
+> **Keep the 💡 tag anyway:** the hint penalty is applied **client-side** — the activity halves
+> the affected question's marks before writing to the database, so the stored score is already
+> correct. The 💡 marker still belongs in the `details` string because the **dashboard**
+> reads it to show which questions were answered with a hint. There is no server-side recompute
+> (no Apps Script), so the sent score is final — make sure you halve it in the activity.
 
 ### Projector / Live mode (separate page, not per-activity)
-The kit ships a `projector.html` for front-of-class display. It READS the results sheet
-(`?action=getData`, same endpoint as the dashboard) and auto-refreshes on a timer, showing a
+The kit ships a `projector.html` for front-of-class display. It READS the same Realtime Database
+`submissions` node as the dashboard (live listener, auto-refreshing), showing a
 top-performers leaderboard, class stats, per-activity averages, and a live feed of the latest
-submissions. It writes nothing and needs no `.gs`/sheet change. Link it from `index.html` and
-the instructor `control.html`. Reuse the dark graphite + copper design system for consistency.
+submissions. It writes nothing. Link it from `index.html` and the instructor `control.html`.
+Reuse the dark graphite + copper design system for consistency.
 
-Each task/round submits IMMEDIATELY when results screen is shown using the helper library:
+Each task/round submits IMMEDIATELY when the results screen is shown, via the helper library:
 
 ```javascript
 function submitResult(payload) {
-  return MMT.submitResult(null, payload);
+  return MMT.submitResult(DB_ENABLED, payload);
 }
 ```
 
-### Payload (adapt fields per type — always include college/department + full student identity):
+### Payload (adapt fields per type — always include college/department + full student identity).
+Written as one record (a `push()` child under the `submissions` node) in the Realtime Database:
 ```javascript
 {
   game: "Activity Title",
@@ -613,8 +677,33 @@ function submitResult(payload) {
   score, max, percent: pct,
   details: "per-question summary string",
   timeTaken: MMT.getTimeTaken(),   // seconds from Start click to Submit; null if not tracked. Used for speed tie-breaker on leaderboard.
+
+  // ===== PER-QUESTION COLUMNS (REQUIRED for heatmap) =====
+  // For each question, write THREE separate fields: Q# Answer, Q# Marks, Q# Detail.
+  // Without these, the heatmap shows only dashes.
+  "Q1 Answer": "chosen answer text",
+  "Q1 Marks": 10,                    // numeric marks earned (after hint penalty if applicable)
+  "Q1 Detail": "Correct ✅" + hintTag,  // or "Wrong ❌" + hintTag; hintTag = " 💡" when hint used, else ""
+
+  "Q2 Answer": "...",
+  "Q2 Marks": 5,
+  "Q2 Detail": "Wrong ❌ 💡",
+
+  // ... repeat for all questions Q3, Q4, etc.
 }
 ```
+
+**Why three fields per question?** The dashboard reads `Q# Marks` for the heatmap cells (numeric score)
+and `Q# Detail` for the question-bar accuracy chart (counts `✅`/`❌` or `Correct`/`Wrong`). The `Q# Answer`
+field stores what the student chose, used by the distractors chart to show which wrong answers are most common.
+If you omit these columns, the activity still submits and the leaderboard works, but the heatmap will be blank
+and the per-question analytics won't load.
+
+> ⚠️ **Realtime Database key rule — payload field names must NOT contain `.` `#` `$` `/` `[` `]`.**
+> RTDB forbids these characters in keys. `mmt-utils.js` sanitizes them (replacing each with `-`), so
+> a field like `"Round / Mission"` silently becomes `"Round - Mission"` (then remapped to `round`) —
+> which breaks the dashboard column match. Keep keys plain: use `round`, `roundNumber`, `Q1 Answer`,
+> `Q1 Marks`, `Q1 Detail` (spaces are fine; slashes and dots are not).
 
 > ⚠️ **CRITICAL — the `details` string drives the whole analytics dashboard. Get this exact.**
 > The dashboard splits `details` on `" | "` into one entry per question, then decides
@@ -644,7 +733,7 @@ function submitResult(payload) {
 <div class="submit-status" id="submitStatus">Sending result to your instructor…</div>
 ```
 On success: `"✓ Result sent to your instructor"` with class `ok`
-On failure: `"⚠ Couldn't reach the results sheet"` with class `warn`
+On failure: `"⚠ Couldn't reach the database"` with class `warn`
 
 ---
 
@@ -654,7 +743,9 @@ On failure: `"⚠ Couldn't reach the results sheet"` with class `warn`
    After the student passes the gate and clicks "Start", call:
    - `MMT.markStart()` — begins silent time tracking for speed tie-breaker (always, for all activities)
    - `MMT.startTimer(submitCurrentRound)` — starts a visible countdown only if `?timed=N` is in the URL; safe no-op otherwise
-2. **Task screen** — Answer all questions → Submit button (disabled until ALL answered)
+2. **Task screen** — Answer all questions → Submit button (disabled until ALL answered).
+   Render the hint reveal here with `MMT.hintBlock(key, hintText)` (round- or item-level — see
+   PRO FEATURE #5). Every round/mission/case has a `hint:` in its data, so this is always drawn.
 3. **Results screen** — Score badge + per-question feedback with correct answer + explanation → "Next" button only (NO retry)
 4. **Final screen** — Cumulative score + per-task breakdown + **⬇ Download Result Card** button (primary) + "Play Again"/"Restart" button (secondary/ghost)
    Before the score breakdown, insert the achievement badge:
@@ -675,6 +766,10 @@ When creating content from user-provided materials:
 5. Every answer must connect directly to the provided lecture/topic content
 6. Use real-world examples and scenarios relevant to the subject
 7. Difficulty should ramp slightly across rounds (round 1 = recall, round 2 = application, round 3 = analysis)
+8. **Hints are REQUIRED (not optional).** Every round/mission/case MUST carry a `hint:` — either
+   one `hint:` on each round object (round-level) or a `hint:` on every question/item. A hint is a
+   genuine nudge toward the reasoning, never the answer itself. See PRO FEATURE #5 for the render/
+   score/reset wiring. The data models below already show where `hint:` goes — keep it in.
 
 ## Choosing Types for a Topic
 
